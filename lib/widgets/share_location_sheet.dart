@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/app_theme.dart';
 import '../l10n/app_localizations.dart';
@@ -99,9 +100,11 @@ class _ShareSheet extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          // CrossAxisAlignment.start is direction-aware:
+          // aligns left in LTR, right in RTL.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
+            // Handle bar — always centered
             Center(
               child: Container(
                 width: 40,
@@ -114,7 +117,7 @@ class _ShareSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Title row
+            // Title row — Row respects ambient Directionality
             Row(
               children: [
                 Icon(Icons.location_on, color: color, size: 22),
@@ -160,25 +163,30 @@ class _ShareSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Share buttons
+            // WhatsApp
             _ShareButton(
-              icon: Icons.chat,
+              icon: FaIcon(
+                FontAwesomeIcons.whatsapp,
+                color: const Color(0xFF25D366),
+                size: 20,
+              ),
               label: l10n.locationShareWhatsApp,
-              color: const Color(0xFF25D366),
               onTap: () => _shareWhatsApp(context, message, l10n),
             ),
             const SizedBox(height: 12),
+
+            // SMS
             _ShareButton(
-              icon: Icons.sms,
+              icon: Icon(Icons.sms, color: color, size: 20),
               label: l10n.locationShareSms,
-              color: color,
               onTap: () => _shareSms(context, message, l10n),
             ),
             const SizedBox(height: 12),
+
+            // Copy
             _ShareButton(
-              icon: Icons.copy,
+              icon: Icon(Icons.copy, color: cs.secondary, size: 20),
               label: l10n.settingsLocationCopy,
-              color: cs.secondary,
               onTap: () => _copyToClipboard(context, mapsLink, l10n),
             ),
           ],
@@ -211,7 +219,6 @@ class _ShareSheet extends StatelessWidget {
   ) async {
     Navigator.pop(context);
     final encoded = Uri.encodeComponent(message);
-    // iOS uses '&body=', Android uses '?body=' — the platform disambiguates
     final uri = Uri.parse('sms:?body=$encoded');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (context.mounted) {
@@ -236,15 +243,13 @@ class _ShareSheet extends StatelessWidget {
 }
 
 class _ShareButton extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String label;
-  final Color color;
   final VoidCallback onTap;
 
   const _ShareButton({
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
   });
 
@@ -257,7 +262,7 @@ class _ShareButton extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, color: color, size: 20),
+        icon: icon,
         label: Text(
           label,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -266,7 +271,8 @@ class _ShareButton extends StatelessWidget {
           ),
         ),
         style: OutlinedButton.styleFrom(
-          alignment: Alignment.centerLeft,
+          // AlignmentDirectional.centerStart = left in LTR, right in RTL
+          alignment: AlignmentDirectional.centerStart,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           side: BorderSide(color: cs.outlineVariant),
           shape: RoundedRectangleBorder(

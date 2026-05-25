@@ -287,10 +287,10 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String get locationShareWhatsApp => 'WhatsApp';
+  String get locationShareWhatsApp => 'וואטסאפ';
 
   @override
-  String get locationShareSms => 'SMS';
+  String get locationShareSms => 'מסרון';
 
   @override
   String get locationShareNotAvailable => 'האפליקציה אינה זמינה במכשיר זה';

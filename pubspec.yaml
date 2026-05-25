@@ -59,6 +59,9 @@ dependencies:
   geolocator: ^13.0.2
   google_fonts: ^8.0.2
 
+  # Brand icons (WhatsApp, etc.)
+  font_awesome_flutter: ^10.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -103,6 +103,22 @@ class AppLocalizationsAr extends AppLocalizations {
       'حافظ على المراقبة السريرية. تأكد من بقاء المريض دافئًا وتجنب الحركات المفاجئة في انتظار وصول الطاقم الطبي.';
 
   @override
+  String get stepCompleteTimingTitle => 'وقت البروتوكول';
+
+  @override
+  String get stepCompleteTotalTime => 'الوقت الكلي';
+
+  @override
+  String get stepCompleteStartedAt => 'البداية';
+
+  @override
+  String get stepCompleteFinishedAt => 'النهاية';
+
+  @override
+  String get stepCompleteIncidentLogHint =>
+      'يمكنك مراجعة هذه الجلسة لاحقًا من الإعدادات > سجل الحوادث.';
+
+  @override
   String get stepCompleteDisclaimer =>
       'هذا التطبيق لا يُغني عن الرعاية الطبية المتخصصة. استشر طبيبًا عند الحاجة.';
 
@@ -160,6 +176,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsMedicalSourcesSubtitle => 'عرض مصادرنا الموثقة';
+
+  @override
+  String get settingsIncidentLog => 'سجل الحوادث';
+
+  @override
+  String get settingsIncidentLogSubtitle =>
+      'مراجعة بروتوكولات الطوارئ التي تم فتحها مؤخرًا';
 
   @override
   String get settingsAbout => 'حول Guardian Angel';
@@ -254,6 +277,111 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsLocationCopied => 'تم نسخ رابط الموقع! 📋';
+
+  @override
+  String get incidentLogTitle => 'سجل الحوادث';
+
+  @override
+  String incidentLogEntry(String emergencyTitle) {
+    return 'تم فتح بروتوكول $emergencyTitle';
+  }
+
+  @override
+  String incidentLogProgress(int completed, int total) {
+    return 'تم الوصول إلى $completed من $total خطوات';
+  }
+
+  @override
+  String get incidentLogCompleted => 'تم إكمال جميع الخطوات';
+
+  @override
+  String incidentLogTotalTime(String duration) {
+    return 'الوقت الكلي: $duration';
+  }
+
+  @override
+  String incidentLogStepTimes(String times) {
+    return 'أوقات الخطوات: $times';
+  }
+
+  @override
+  String get incidentLogStepTimesTitle => 'أوقات الخطوات';
+
+  @override
+  String incidentLogStepTimeLabel(int step) {
+    return 'الخطوة $step';
+  }
+
+  @override
+  String get incidentLogNoTimingDetails => 'لا توجد تفاصيل وقت متاحة';
+
+  @override
+  String get incidentLogEmptyTitle => 'لا توجد حوادث بعد';
+
+  @override
+  String get incidentLogEmptyBody =>
+      'ستظهر هنا بروتوكولات الطوارئ التي تفتحها للمراجعة السريعة.';
+
+  @override
+  String get incidentLogLoadFailed => 'تعذر تحميل سجل الحوادث';
+
+  @override
+  String get incidentLogLoadFailedBody =>
+      'يرجى إعادة تشغيل التطبيق والمحاولة مرة أخرى.';
+
+  @override
+  String get incidentLogClearTitle => 'مسح سجل الحوادث؟';
+
+  @override
+  String get incidentLogClearBody =>
+      'سيؤدي هذا إلى إزالة كل سجل الحوادث المحفوظ على هذا الجهاز.';
+
+  @override
+  String get incidentLogClearAction => 'مسح';
+
+  @override
+  String get incidentLogCleared => 'تم مسح سجل الحوادث';
+
+  @override
+  String get incidentLogClearFailed => 'تعذر مسح سجل الحوادث';
+
+  @override
+  String get incidentLogDeleteAction => 'حذف';
+
+  @override
+  String get incidentLogDeleteTitle => 'حذف هذا السجل؟';
+
+  @override
+  String get incidentLogDeleteBody =>
+      'سيتم حذف هذا السجل نهائيًا من قائمة السجلات.';
+
+  @override
+  String get incidentLogDeleted => 'تم حذف السجل';
+
+  @override
+  String get incidentLogDeleteFailed => 'تعذر حذف السجل';
+
+  @override
+  String get incidentLogSelectAction => 'تحديد';
+
+  @override
+  String incidentLogSelectionTitle(int count) {
+    return 'تم تحديد $count';
+  }
+
+  @override
+  String get incidentLogDeleteSelectedTitle => 'حذف السجلات المحددة؟';
+
+  @override
+  String get incidentLogDeleteSelectedBody =>
+      'سيتم حذف السجلات المحددة نهائيًا من قائمة السجلات.';
+
+  @override
+  String get incidentLogDeleteSelectedEmpty =>
+      'حدد سجلًا واحدًا على الأقل لحذفه';
+
+  @override
+  String get incidentLogSelectedDeleted => 'تم حذف السجلات المحددة';
 
   @override
   String get settingsSourcesDialogTitle => 'المصادر الطبية';

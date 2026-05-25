@@ -274,6 +274,36 @@ abstract class AppLocalizations {
   /// **'Maintain clinical observation. Ensure the patient remains warm and avoid sudden movements while waiting for medical staff arrival.'**
   String get stepCompleteVitalsBody;
 
+  /// No description provided for @stepCompleteTimingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol Timing'**
+  String get stepCompleteTimingTitle;
+
+  /// No description provided for @stepCompleteTotalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Total time'**
+  String get stepCompleteTotalTime;
+
+  /// No description provided for @stepCompleteStartedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get stepCompleteStartedAt;
+
+  /// No description provided for @stepCompleteFinishedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get stepCompleteFinishedAt;
+
+  /// No description provided for @stepCompleteIncidentLogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review this session later in Settings > Incident Log.'**
+  String get stepCompleteIncidentLogHint;
+
   /// No description provided for @stepCompleteDisclaimer.
   ///
   /// In en, this message translates to:
@@ -387,6 +417,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View our verified sources'**
   String get settingsMedicalSourcesSubtitle;
+
+  /// No description provided for @settingsIncidentLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Incident Log'**
+  String get settingsIncidentLog;
+
+  /// No description provided for @settingsIncidentLogSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review recently opened emergency protocols'**
+  String get settingsIncidentLogSubtitle;
 
   /// No description provided for @settingsAbout.
   ///
@@ -561,6 +603,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Location link copied! 📋'**
   String get settingsLocationCopied;
+
+  /// No description provided for @incidentLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Incident Log'**
+  String get incidentLogTitle;
+
+  /// No description provided for @incidentLogEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Opened {emergencyTitle} protocol'**
+  String incidentLogEntry(String emergencyTitle);
+
+  /// No description provided for @incidentLogProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} steps reached'**
+  String incidentLogProgress(int completed, int total);
+
+  /// No description provided for @incidentLogCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed all steps'**
+  String get incidentLogCompleted;
+
+  /// No description provided for @incidentLogTotalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Total time: {duration}'**
+  String incidentLogTotalTime(String duration);
+
+  /// No description provided for @incidentLogStepTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Step times: {times}'**
+  String incidentLogStepTimes(String times);
+
+  /// No description provided for @incidentLogStepTimesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Step times'**
+  String get incidentLogStepTimesTitle;
+
+  /// No description provided for @incidentLogStepTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step}'**
+  String incidentLogStepTimeLabel(int step);
+
+  /// No description provided for @incidentLogNoTimingDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'No timing details available'**
+  String get incidentLogNoTimingDetails;
+
+  /// No description provided for @incidentLogEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No incidents yet'**
+  String get incidentLogEmptyTitle;
+
+  /// No description provided for @incidentLogEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Opened emergency protocols will appear here for quick review.'**
+  String get incidentLogEmptyBody;
+
+  /// No description provided for @incidentLogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load incident log'**
+  String get incidentLogLoadFailed;
+
+  /// No description provided for @incidentLogLoadFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please restart the app and try again.'**
+  String get incidentLogLoadFailedBody;
+
+  /// No description provided for @incidentLogClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear incident log?'**
+  String get incidentLogClearTitle;
+
+  /// No description provided for @incidentLogClearBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes all saved incident history from this device.'**
+  String get incidentLogClearBody;
+
+  /// No description provided for @incidentLogClearAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get incidentLogClearAction;
+
+  /// No description provided for @incidentLogCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Incident log cleared'**
+  String get incidentLogCleared;
+
+  /// No description provided for @incidentLogClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear incident log'**
+  String get incidentLogClearFailed;
+
+  /// No description provided for @incidentLogDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get incidentLogDeleteAction;
+
+  /// No description provided for @incidentLogDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this incident?'**
+  String get incidentLogDeleteTitle;
+
+  /// No description provided for @incidentLogDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This incident will be permanently removed from the log.'**
+  String get incidentLogDeleteBody;
+
+  /// No description provided for @incidentLogDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Incident deleted'**
+  String get incidentLogDeleted;
+
+  /// No description provided for @incidentLogDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete incident'**
+  String get incidentLogDeleteFailed;
+
+  /// No description provided for @incidentLogSelectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get incidentLogSelectAction;
+
+  /// No description provided for @incidentLogSelectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String incidentLogSelectionTitle(int count);
+
+  /// No description provided for @incidentLogDeleteSelectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected incidents?'**
+  String get incidentLogDeleteSelectedTitle;
+
+  /// No description provided for @incidentLogDeleteSelectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected incidents will be permanently removed from the log.'**
+  String get incidentLogDeleteSelectedBody;
+
+  /// No description provided for @incidentLogDeleteSelectedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one incident to delete'**
+  String get incidentLogDeleteSelectedEmpty;
+
+  /// No description provided for @incidentLogSelectedDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected incidents deleted'**
+  String get incidentLogSelectedDeleted;
 
   /// No description provided for @settingsSourcesDialogTitle.
   ///

@@ -104,6 +104,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Maintain clinical observation. Ensure the patient remains warm and avoid sudden movements while waiting for medical staff arrival.';
 
   @override
+  String get stepCompleteTimingTitle => 'Protocol Timing';
+
+  @override
+  String get stepCompleteTotalTime => 'Total time';
+
+  @override
+  String get stepCompleteStartedAt => 'Started';
+
+  @override
+  String get stepCompleteFinishedAt => 'Finished';
+
+  @override
+  String get stepCompleteIncidentLogHint =>
+      'You can review this session later in Settings > Incident Log.';
+
+  @override
   String get stepCompleteDisclaimer =>
       'This app does not replace professional medical care. Seek a doctor if needed.';
 
@@ -162,6 +178,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsMedicalSourcesSubtitle => 'View our verified sources';
+
+  @override
+  String get settingsIncidentLog => 'Incident Log';
+
+  @override
+  String get settingsIncidentLogSubtitle =>
+      'Review recently opened emergency protocols';
 
   @override
   String get settingsAbout => 'About Guardian Angel';
@@ -256,6 +279,111 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLocationCopied => 'Location link copied! 📋';
+
+  @override
+  String get incidentLogTitle => 'Incident Log';
+
+  @override
+  String incidentLogEntry(String emergencyTitle) {
+    return 'Opened $emergencyTitle protocol';
+  }
+
+  @override
+  String incidentLogProgress(int completed, int total) {
+    return '$completed of $total steps reached';
+  }
+
+  @override
+  String get incidentLogCompleted => 'Completed all steps';
+
+  @override
+  String incidentLogTotalTime(String duration) {
+    return 'Total time: $duration';
+  }
+
+  @override
+  String incidentLogStepTimes(String times) {
+    return 'Step times: $times';
+  }
+
+  @override
+  String get incidentLogStepTimesTitle => 'Step times';
+
+  @override
+  String incidentLogStepTimeLabel(int step) {
+    return 'Step $step';
+  }
+
+  @override
+  String get incidentLogNoTimingDetails => 'No timing details available';
+
+  @override
+  String get incidentLogEmptyTitle => 'No incidents yet';
+
+  @override
+  String get incidentLogEmptyBody =>
+      'Opened emergency protocols will appear here for quick review.';
+
+  @override
+  String get incidentLogLoadFailed => 'Could not load incident log';
+
+  @override
+  String get incidentLogLoadFailedBody =>
+      'Please restart the app and try again.';
+
+  @override
+  String get incidentLogClearTitle => 'Clear incident log?';
+
+  @override
+  String get incidentLogClearBody =>
+      'This removes all saved incident history from this device.';
+
+  @override
+  String get incidentLogClearAction => 'Clear';
+
+  @override
+  String get incidentLogCleared => 'Incident log cleared';
+
+  @override
+  String get incidentLogClearFailed => 'Could not clear incident log';
+
+  @override
+  String get incidentLogDeleteAction => 'Delete';
+
+  @override
+  String get incidentLogDeleteTitle => 'Delete this incident?';
+
+  @override
+  String get incidentLogDeleteBody =>
+      'This incident will be permanently removed from the log.';
+
+  @override
+  String get incidentLogDeleted => 'Incident deleted';
+
+  @override
+  String get incidentLogDeleteFailed => 'Could not delete incident';
+
+  @override
+  String get incidentLogSelectAction => 'Select';
+
+  @override
+  String incidentLogSelectionTitle(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get incidentLogDeleteSelectedTitle => 'Delete selected incidents?';
+
+  @override
+  String get incidentLogDeleteSelectedBody =>
+      'The selected incidents will be permanently removed from the log.';
+
+  @override
+  String get incidentLogDeleteSelectedEmpty =>
+      'Select at least one incident to delete';
+
+  @override
+  String get incidentLogSelectedDeleted => 'Selected incidents deleted';
 
   @override
   String get settingsSourcesDialogTitle => 'Medical Sources';

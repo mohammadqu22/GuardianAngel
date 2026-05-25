@@ -77,8 +77,8 @@ The app originated from a real-life incident where a friend suffered severe burn
 
 ```bash
 # Clone the repo
-git clone https://github.com/mohammadqu22/GurdianAngel.git
-cd GurdianAngel
+git clone https://github.com/mohammadqu22/GuardianAngel.git
+cd GuardianAngel
 
 # Install dependencies
 flutter pub get
@@ -92,7 +92,6 @@ flutter run
 - **Mohammad Quttaineh** – Flutter & Backend  
 - **Amru Alyan** – UI/UX & Architecture  
 - **Academic Supervisor:** Mrs. Alida'at Adler
-
 
 
 

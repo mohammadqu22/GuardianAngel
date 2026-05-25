@@ -1,4 +1,4 @@
-package com.example.gurdian_angel
+package com.guardianangel.app
 
 import io.flutter.embedding.android.FlutterActivity
 

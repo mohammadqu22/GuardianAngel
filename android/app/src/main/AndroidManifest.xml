@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     
     <application
-        android:label="gurdian_angel"
+        android:label="Guardian Angel"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -8,6 +8,7 @@ import '../core/app_theme.dart';
 import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/tts_service.dart';
 
@@ -338,6 +339,16 @@ class _StepScreenState extends State<StepScreen> {
         foregroundColor: cs.onSurface,
         elevation: 0,
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.location_on_outlined),
+            tooltip: l10n.settingsShareLocation,
+            onPressed: () => ShareLocationSheet.show(
+              context,
+              accentColor: widget.emergencyColor,
+            ),
+          ),
+        ],
       ),
       body: _loading
           ? Center(

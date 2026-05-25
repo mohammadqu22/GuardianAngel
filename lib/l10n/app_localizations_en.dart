@@ -281,6 +281,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLocationCopied => 'Location link copied! 📋';
 
   @override
+  String get locationShareTitle => 'Share My Location';
+
+  @override
+  String locationShareMessage(String link) {
+    return 'I need help! My current location: $link';
+  }
+
+  @override
+  String get locationShareWhatsApp => 'WhatsApp';
+
+  @override
+  String get locationShareSms => 'SMS';
+
+  @override
+  String get locationShareNotAvailable => 'App not available on this device';
+
+  @override
   String get incidentLogTitle => 'Incident Log';
 
   @override

@@ -279,6 +279,23 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsLocationCopied => 'קישור המיקום הועתק! 📋';
 
   @override
+  String get locationShareTitle => 'שתף את מיקומי';
+
+  @override
+  String locationShareMessage(String link) {
+    return 'אני צריך עזרה! המיקום שלי כרגע: $link';
+  }
+
+  @override
+  String get locationShareWhatsApp => 'WhatsApp';
+
+  @override
+  String get locationShareSms => 'SMS';
+
+  @override
+  String get locationShareNotAvailable => 'האפליקציה אינה זמינה במכשיר זה';
+
+  @override
   String get incidentLogTitle => 'יומן אירועים';
 
   @override

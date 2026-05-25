@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
-import '../services/location_service.dart';
 import '../services/phone_service.dart';
 import '../core/app_theme.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/share_location_sheet.dart';
 import '../widgets/source_item.dart';
 import 'incident_log_screen.dart';
 
@@ -223,136 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await PhoneService.call(phone, context, l10n.settingsCallFailed);
   }
 
-  Future<void> _showLocationDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final dialogCs = Theme.of(context).colorScheme;
-        return Dialog(
-          backgroundColor: dialogCs.surfaceContainerLowest,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              children: [
-                CircularProgressIndicator(color: dialogCs.primary),
-                const SizedBox(width: 16),
-                Text(l10n.settingsLocationFetching),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    final position = await LocationService.getCurrentLocation();
-    if (mounted) Navigator.pop(context);
-
-    if (position == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.settingsLocationFailed)),
-        );
-      }
-      return;
-    }
-
-    final mapsLink  = LocationService.getMapsLink(position);
-    final formatted = LocationService.formatLocation(position);
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          final dialogCs = Theme.of(context).colorScheme;
-          final theme    = Theme.of(context);
-          final dl10n    = AppLocalizations.of(context)!;
-          return Dialog(
-            backgroundColor: dialogCs.surfaceContainerLowest,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, color: dialogCs.primary),
-                      const SizedBox(width: 10),
-                      Text(
-                        dl10n.settingsLocationDialogTitle,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    dl10n.settingsLocationShareHint,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: dialogCs.onSurfaceVariant),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: dialogCs.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Text(mapsLink, style: theme.textTheme.bodyMedium),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    dl10n.settingsLocationCoords(formatted),
-                    style: theme.textTheme.labelSmall?.copyWith(color: dialogCs.outline),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(dl10n.settingsClose),
-                      ),
-                      const SizedBox(width: 8),
-                      GradientButton(
-                        gradientColors: [dialogCs.primary, dialogCs.primaryContainer],
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        onTap: () {
-                          final messenger = ScaffoldMessenger.of(context);
-                          Clipboard.setData(ClipboardData(text: mapsLink));
-                          Navigator.pop(context);
-                          messenger.showSnackBar(
-                            SnackBar(content: Text(dl10n.settingsLocationCopied)),
-                          );
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.copy, size: 18, color: dialogCs.onPrimary),
-                            const SizedBox(width: 8),
-                            Text(
-                              dl10n.settingsLocationCopy,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: dialogCs.onPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
-  }
+  Future<void> _showLocationDialog() =>
+      ShareLocationSheet.show(context);
 
   @override
   Widget build(BuildContext context) {

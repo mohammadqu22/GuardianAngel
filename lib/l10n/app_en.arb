@@ -117,6 +117,16 @@
   },
   "settingsLocationCopy": "Copy Link",
   "settingsLocationCopied": "Location link copied! 📋",
+  "locationShareTitle": "Share My Location",
+  "locationShareMessage": "I need help! My current location: {link}",
+  "@locationShareMessage": {
+    "placeholders": {
+      "link": { "type": "String" }
+    }
+  },
+  "locationShareWhatsApp": "WhatsApp",
+  "locationShareSms": "SMS",
+  "locationShareNotAvailable": "App not available on this device",
 
   "incidentLogTitle": "Incident Log",
   "incidentLogEntry": "Opened {emergencyTitle} protocol",

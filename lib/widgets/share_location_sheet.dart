@@ -1,0 +1,279 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../core/app_theme.dart';
+import '../l10n/app_localizations.dart';
+import '../services/location_service.dart';
+
+class ShareLocationSheet {
+  /// Fetches the current location, then shows a bottom sheet with three
+  /// share options: WhatsApp, SMS, and Copy to clipboard.
+  static Future<void> show(
+    BuildContext context, {
+    Color? accentColor,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show a loading dialog while GPS resolves.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return Dialog(
+          backgroundColor: cs.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: cs.primary),
+                const SizedBox(width: 16),
+                Text(l10n.settingsLocationFetching),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    final position = await LocationService.getCurrentLocation();
+    if (context.mounted) Navigator.pop(context);
+
+    if (position == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.settingsLocationFailed)),
+        );
+      }
+      return;
+    }
+
+    final mapsLink = LocationService.getMapsLink(position);
+    final coords = LocationService.formatLocation(position);
+    final message = l10n.locationShareMessage(mapsLink);
+
+    if (!context.mounted) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+      ),
+      builder: (ctx) => _ShareSheet(
+        mapsLink: mapsLink,
+        coords: coords,
+        message: message,
+        accentColor: accentColor,
+      ),
+    );
+  }
+}
+
+class _ShareSheet extends StatelessWidget {
+  final String mapsLink;
+  final String coords;
+  final String message;
+  final Color? accentColor;
+
+  const _ShareSheet({
+    required this.mapsLink,
+    required this.coords,
+    required this.message,
+    this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final color = accentColor ?? cs.primary;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cs.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Title row
+            Row(
+              children: [
+                Icon(Icons.location_on, color: color, size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  l10n.locationShareTitle,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Maps link preview
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mapsLink,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.primary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.settingsLocationCoords(coords),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Share buttons
+            _ShareButton(
+              icon: Icons.chat,
+              label: l10n.locationShareWhatsApp,
+              color: const Color(0xFF25D366),
+              onTap: () => _shareWhatsApp(context, message, l10n),
+            ),
+            const SizedBox(height: 12),
+            _ShareButton(
+              icon: Icons.sms,
+              label: l10n.locationShareSms,
+              color: color,
+              onTap: () => _shareSms(context, message, l10n),
+            ),
+            const SizedBox(height: 12),
+            _ShareButton(
+              icon: Icons.copy,
+              label: l10n.settingsLocationCopy,
+              color: cs.secondary,
+              onTap: () => _copyToClipboard(context, mapsLink, l10n),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareWhatsApp(
+    BuildContext context,
+    String message,
+    AppLocalizations l10n,
+  ) async {
+    Navigator.pop(context);
+    final encoded = Uri.encodeComponent(message);
+    final uri = Uri.parse('https://wa.me/?text=$encoded');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.locationShareNotAvailable)),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareSms(
+    BuildContext context,
+    String message,
+    AppLocalizations l10n,
+  ) async {
+    Navigator.pop(context);
+    final encoded = Uri.encodeComponent(message);
+    // iOS uses '&body=', Android uses '?body=' — the platform disambiguates
+    final uri = Uri.parse('sms:?body=$encoded');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.locationShareNotAvailable)),
+        );
+      }
+    }
+  }
+
+  void _copyToClipboard(
+    BuildContext context,
+    String link,
+    AppLocalizations l10n,
+  ) {
+    Clipboard.setData(ClipboardData(text: link));
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.settingsLocationCopied)),
+    );
+  }
+}
+
+class _ShareButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ShareButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, color: color, size: 20),
+        label: Text(
+          label,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: cs.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          side: BorderSide(color: cs.outlineVariant),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+      ),
+    );
+  }
+}

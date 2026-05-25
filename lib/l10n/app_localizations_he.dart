@@ -104,6 +104,22 @@ class AppLocalizationsHe extends AppLocalizations {
       'שמור על תצפית קלינית. ודא שהמטופל חם והימנע מתנועות פתאומיות עד להגעת הצוות הרפואי.';
 
   @override
+  String get stepCompleteTimingTitle => 'זמני הפרוטוקול';
+
+  @override
+  String get stepCompleteTotalTime => 'זמן כולל';
+
+  @override
+  String get stepCompleteStartedAt => 'התחלה';
+
+  @override
+  String get stepCompleteFinishedAt => 'סיום';
+
+  @override
+  String get stepCompleteIncidentLogHint =>
+      'אפשר לעיין בסשן הזה מאוחר יותר דרך הגדרות > יומן אירועים.';
+
+  @override
   String get stepCompleteDisclaimer =>
       'אפליקציה זו אינה מחליפה טיפול רפואי מקצועי. פנה לרופא במידת הצורך.';
 
@@ -160,6 +176,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get settingsMedicalSourcesSubtitle => 'צפה במקורות המאומתים שלנו';
+
+  @override
+  String get settingsIncidentLog => 'יומן אירועים';
+
+  @override
+  String get settingsIncidentLogSubtitle =>
+      'סקור פרוטוקולי חירום שנפתחו לאחרונה';
 
   @override
   String get settingsAbout => 'אודות Guardian Angel';
@@ -254,6 +277,109 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get settingsLocationCopied => 'קישור המיקום הועתק! 📋';
+
+  @override
+  String get incidentLogTitle => 'יומן אירועים';
+
+  @override
+  String incidentLogEntry(String emergencyTitle) {
+    return 'נפתח פרוטוקול $emergencyTitle';
+  }
+
+  @override
+  String incidentLogProgress(int completed, int total) {
+    return 'הגעת ל-$completed מתוך $total שלבים';
+  }
+
+  @override
+  String get incidentLogCompleted => 'כל השלבים הושלמו';
+
+  @override
+  String incidentLogTotalTime(String duration) {
+    return 'זמן כולל: $duration';
+  }
+
+  @override
+  String incidentLogStepTimes(String times) {
+    return 'זמני שלבים: $times';
+  }
+
+  @override
+  String get incidentLogStepTimesTitle => 'זמני שלבים';
+
+  @override
+  String incidentLogStepTimeLabel(int step) {
+    return 'שלב $step';
+  }
+
+  @override
+  String get incidentLogNoTimingDetails => 'אין פרטי זמן זמינים';
+
+  @override
+  String get incidentLogEmptyTitle => 'אין אירועים עדיין';
+
+  @override
+  String get incidentLogEmptyBody =>
+      'פרוטוקולי חירום שתפתח יופיעו כאן לסקירה מהירה.';
+
+  @override
+  String get incidentLogLoadFailed => 'לא ניתן לטעון את יומן האירועים';
+
+  @override
+  String get incidentLogLoadFailedBody =>
+      'אנא הפעל מחדש את האפליקציה ונסה שוב.';
+
+  @override
+  String get incidentLogClearTitle => 'לנקות את יומן האירועים?';
+
+  @override
+  String get incidentLogClearBody =>
+      'פעולה זו תסיר את כל היסטוריית האירועים השמורה במכשיר זה.';
+
+  @override
+  String get incidentLogClearAction => 'נקה';
+
+  @override
+  String get incidentLogCleared => 'יומן האירועים נוקה';
+
+  @override
+  String get incidentLogClearFailed => 'לא ניתן לנקות את יומן האירועים';
+
+  @override
+  String get incidentLogDeleteAction => 'מחק';
+
+  @override
+  String get incidentLogDeleteTitle => 'למחוק את האירוע הזה?';
+
+  @override
+  String get incidentLogDeleteBody => 'אירוע זה יימחק לצמיתות מהיומן.';
+
+  @override
+  String get incidentLogDeleted => 'האירוע נמחק';
+
+  @override
+  String get incidentLogDeleteFailed => 'לא ניתן למחוק את האירוע';
+
+  @override
+  String get incidentLogSelectAction => 'בחר';
+
+  @override
+  String incidentLogSelectionTitle(int count) {
+    return '$count נבחרו';
+  }
+
+  @override
+  String get incidentLogDeleteSelectedTitle => 'למחוק את האירועים שנבחרו?';
+
+  @override
+  String get incidentLogDeleteSelectedBody =>
+      'האירועים שנבחרו יימחקו לצמיתות מהיומן.';
+
+  @override
+  String get incidentLogDeleteSelectedEmpty => 'בחר לפחות אירוע אחד למחיקה';
+
+  @override
+  String get incidentLogSelectedDeleted => 'האירועים שנבחרו נמחקו';
 
   @override
   String get settingsSourcesDialogTitle => 'מקורות רפואיים';

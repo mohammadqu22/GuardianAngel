@@ -8,6 +8,7 @@ import '../services/phone_service.dart';
 import '../core/app_theme.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/source_item.dart';
+import 'incident_log_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -499,6 +500,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: l10n.settingsMedicalSources,
               subtitle: l10n.settingsMedicalSourcesSubtitle,
               onTap: _showMedicalSourcesDialog,
+            ),
+            _buildSettingCard(
+              icon: Icons.history,
+              iconColor: cs.tertiary,
+              title: l10n.settingsIncidentLog,
+              subtitle: l10n.settingsIncidentLogSubtitle,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const IncidentLogScreen(),
+                  ),
+                );
+              },
             ),
             _buildSettingCard(
               icon: Icons.info_outline,

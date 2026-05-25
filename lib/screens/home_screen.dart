@@ -3,6 +3,7 @@ import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'step_screen.dart';
 import 'settings_screen.dart';
 import '../core/app_theme.dart';
+import '../services/database_service.dart';
 import '../services/phone_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -39,6 +40,32 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openEmergency({
+    required String id,
+    required String title,
+    required Color color,
+  }) async {
+    int? incidentLogId;
+    try {
+      incidentLogId = await DatabaseService.logIncident(id);
+    } catch (_) {
+      // Logging is helpful, but the emergency flow must always remain available.
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StepScreen(
+          emergencyId:    id,
+          emergencyTitle: title,
+          emergencyColor: color,
+          incidentLogId:  incidentLogId,
+        ),
+      ),
+    );
   }
 
   @override
@@ -252,18 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StepScreen(
-              emergencyId:    id,
-              emergencyTitle: title,
-              emergencyColor: color,
-            ),
-          ),
-        );
-      },
+      onTap: () => _openEmergency(id: id, title: title, color: color),
       child: Container(
         decoration: BoxDecoration(
           color: cs.surfaceContainerLow,

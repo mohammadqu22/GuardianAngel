@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -17,8 +19,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _createTables,
+      onUpgrade: _upgradeTables,
     );
   }
 
@@ -50,6 +53,12 @@ class DatabaseService {
         user_id INTEGER,
         timestamp TEXT NOT NULL,
         emergency_type TEXT NOT NULL,
+        completed_steps INTEGER DEFAULT 0,
+        total_steps INTEGER DEFAULT 0,
+        is_completed INTEGER DEFAULT 0,
+        elapsed_seconds INTEGER DEFAULT 0,
+        step_durations_json TEXT DEFAULT '[]',
+        ended_at TEXT,
         FOREIGN KEY (user_id) REFERENCES User_Settings(user_id)
       )
     ''');
@@ -59,6 +68,33 @@ class DatabaseService {
       'language_pref': 'en',
       'is_first_run': 1,
     });
+  }
+
+  static Future<void> _upgradeTables(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE Incident_Log ADD COLUMN completed_steps INTEGER DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE Incident_Log ADD COLUMN total_steps INTEGER DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE Incident_Log ADD COLUMN is_completed INTEGER DEFAULT 0',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE Incident_Log ADD COLUMN elapsed_seconds INTEGER DEFAULT 0',
+      );
+      await db.execute(
+        "ALTER TABLE Incident_Log ADD COLUMN step_durations_json TEXT DEFAULT '[]'",
+      );
+      await db.execute('ALTER TABLE Incident_Log ADD COLUMN ended_at TEXT');
+    }
   }
 
   // ─── User Settings ───────────────────────────────────────
@@ -105,25 +141,72 @@ class DatabaseService {
 
   // ─── Incident Log ─────────────────────────────────────────
 
-  static Future<void> logIncident(String emergencyType) async {
+  static Future<int> logIncident(String emergencyType) async {
     final db = await database;
-    await db.insert('Incident_Log', {
+    return await db.insert('Incident_Log', {
       'user_id': 1,
       'timestamp': DateTime.now().toIso8601String(),
       'emergency_type': emergencyType,
     });
   }
 
+  static Future<void> updateIncidentProgress({
+    required int logId,
+    required int completedSteps,
+    required int totalSteps,
+    required bool isCompleted,
+    int? elapsedSeconds,
+    List<int>? stepDurations,
+    bool markEnded = false,
+  }) async {
+    final db = await database;
+    final values = <String, Object?>{
+      'completed_steps': completedSteps,
+      'total_steps': totalSteps,
+      'is_completed': isCompleted ? 1 : 0,
+    };
+    if (elapsedSeconds != null) {
+      values['elapsed_seconds'] = elapsedSeconds;
+    }
+    if (stepDurations != null) {
+      values['step_durations_json'] = jsonEncode(stepDurations);
+    }
+    if (markEnded) {
+      values['ended_at'] = DateTime.now().toIso8601String();
+    }
+
+    await db.update(
+      'Incident_Log',
+      values,
+      where: 'log_id = ?',
+      whereArgs: [logId],
+    );
+  }
+
   static Future<List<Map<String, dynamic>>> getIncidentLog() async {
     final db = await database;
-    return await db.query(
-      'Incident_Log',
-      orderBy: 'timestamp DESC',
-    );
+    return await db.query('Incident_Log', orderBy: 'timestamp DESC');
   }
 
   static Future<void> clearIncidentLog() async {
     final db = await database;
     await db.delete('Incident_Log');
+  }
+
+  static Future<void> deleteIncidentLog(int logId) async {
+    final db = await database;
+    await db.delete('Incident_Log', where: 'log_id = ?', whereArgs: [logId]);
+  }
+
+  static Future<void> deleteIncidentLogs(List<int> logIds) async {
+    if (logIds.isEmpty) return;
+
+    final db = await database;
+    final placeholders = List.filled(logIds.length, '?').join(', ');
+    await db.delete(
+      'Incident_Log',
+      where: 'log_id IN ($placeholders)',
+      whereArgs: logIds,
+    );
   }
 }

@@ -189,6 +189,67 @@
   "incidentLogDeleteSelectedEmpty": "Select at least one incident to delete",
   "incidentLogSelectedDeleted": "Selected incidents deleted",
 
+  "incidentLogTitle": "Incident Log",
+  "incidentLogEntry": "Opened {emergencyTitle} protocol",
+  "@incidentLogEntry": {
+    "placeholders": {
+      "emergencyTitle": { "type": "String" }
+    }
+  },
+  "incidentLogProgress": "{completed} of {total} steps reached",
+  "@incidentLogProgress": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "incidentLogCompleted": "Completed all steps",
+  "incidentLogTotalTime": "Total time: {duration}",
+  "@incidentLogTotalTime": {
+    "placeholders": {
+      "duration": { "type": "String" }
+    }
+  },
+  "incidentLogStepTimes": "Step times: {times}",
+  "@incidentLogStepTimes": {
+    "placeholders": {
+      "times": { "type": "String" }
+    }
+  },
+  "incidentLogStepTimesTitle": "Step times",
+  "incidentLogStepTimeLabel": "Step {step}",
+  "@incidentLogStepTimeLabel": {
+    "placeholders": {
+      "step": { "type": "int" }
+    }
+  },
+  "incidentLogNoTimingDetails": "No timing details available",
+  "incidentLogEmptyTitle": "No incidents yet",
+  "incidentLogEmptyBody": "Opened emergency protocols will appear here for quick review.",
+  "incidentLogLoadFailed": "Could not load incident log",
+  "incidentLogLoadFailedBody": "Please restart the app and try again.",
+  "incidentLogClearTitle": "Clear incident log?",
+  "incidentLogClearBody": "This removes all saved incident history from this device.",
+  "incidentLogClearAction": "Clear",
+  "incidentLogCleared": "Incident log cleared",
+  "incidentLogClearFailed": "Could not clear incident log",
+  "incidentLogDeleteAction": "Delete",
+  "incidentLogDeleteTitle": "Delete this incident?",
+  "incidentLogDeleteBody": "This incident will be permanently removed from the log.",
+  "incidentLogDeleted": "Incident deleted",
+  "incidentLogDeleteFailed": "Could not delete incident",
+  "incidentLogSelectAction": "Select",
+  "incidentLogSelectionTitle": "{count} selected",
+  "@incidentLogSelectionTitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "incidentLogDeleteSelectedTitle": "Delete selected incidents?",
+  "incidentLogDeleteSelectedBody": "The selected incidents will be permanently removed from the log.",
+  "incidentLogDeleteSelectedEmpty": "Select at least one incident to delete",
+  "incidentLogSelectedDeleted": "Selected incidents deleted",
+
   "settingsSourcesDialogTitle": "Medical Sources",
   "settingsSourcesIntro": "All emergency procedures are based on verified sources:",
   "settingsSourcesRedCrossTitle": "American Red Cross",

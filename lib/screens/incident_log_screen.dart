@@ -463,7 +463,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                     child: Theme(
                       data: theme.copyWith(dividerColor: Colors.transparent),
                       child: AbsorbPointer(
-                        absorbing: _selectionMode,
+                        absorbing: false,
                         child: ExpansionTile(
                           tilePadding: const EdgeInsets.symmetric(
                             horizontal: 16,

@@ -670,7 +670,7 @@ class _StepScreenState extends State<StepScreen> {
             padding: const EdgeInsets.all(32),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 64,
+                minHeight: (constraints.maxHeight - 64).clamp(0.0, double.infinity),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

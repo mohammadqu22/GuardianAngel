@@ -398,7 +398,9 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               _refreshLogs();
-              await _logsFuture;
+              try {
+                await _logsFuture;
+              } catch (_) {}
             },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -460,9 +462,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                     ),
                     child: Theme(
                       data: theme.copyWith(dividerColor: Colors.transparent),
-                      child: AbsorbPointer(
-                        absorbing: false,
-                        child: ExpansionTile(
+                      child: ExpansionTile(
                           tilePadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
@@ -613,7 +613,6 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                             ],
                           ],
                         ),
-                      ),
                     ),
                   ),
                 );

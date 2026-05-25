@@ -54,7 +54,6 @@ class ShareLocationSheet {
     }
 
     final mapsLink = LocationService.getMapsLink(position);
-    final coords = LocationService.formatLocation(position);
     final message = l10n.locationShareMessage(mapsLink);
 
     if (!context.mounted) return;
@@ -67,7 +66,6 @@ class ShareLocationSheet {
       ),
       builder: (ctx) => _ShareSheet(
         mapsLink: mapsLink,
-        coords: coords,
         message: message,
         accentColor: accentColor,
       ),
@@ -77,13 +75,11 @@ class ShareLocationSheet {
 
 class _ShareSheet extends StatelessWidget {
   final String mapsLink;
-  final String coords;
   final String message;
   final Color? accentColor;
 
   const _ShareSheet({
     required this.mapsLink,
-    required this.coords,
     required this.message,
     this.accentColor,
   });
@@ -129,37 +125,6 @@ class _ShareSheet extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-
-            // Maps link preview
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mapsLink,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.primary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.settingsLocationCoords(coords),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: 20),
 

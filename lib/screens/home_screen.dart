@@ -193,6 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
+                        padding: const EdgeInsets.only(bottom: 80),
                         children: filteredEmergencies
                             .map((e) => _buildEmergencyCard(
                                   context,

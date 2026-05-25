@@ -7,12 +7,10 @@ void main() {
   testWidgets('Home screen shows emergency protocols', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: HomeScreen(
-          onThemeModeChanged: (_) {},
-          onLocaleChanged: (_) {},
-        ),
+        home: HomeScreen(onThemeModeChanged: (_) {}, onLocaleChanged: (_) {}),
       ),
     );
 

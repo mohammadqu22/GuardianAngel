@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import '../core/number_formatting.dart';
 import '../core/app_theme.dart';
+import '../core/duration_formatting.dart';
+import '../core/number_formatting.dart';
 import '../services/database_service.dart';
 
 class IncidentLogScreen extends StatefulWidget {
@@ -283,42 +284,6 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
     );
   }
 
-  String _formatDuration(BuildContext context, int seconds) {
-    String unit(
-      int value,
-      String en,
-      String arSingular,
-      String arPlural,
-      String heSingular,
-      String hePlural,
-    ) {
-      final code = Localizations.localeOf(context).languageCode;
-      if (code == 'ar') return value == 1 ? arSingular : arPlural;
-      if (code == 'he') return value == 1 ? heSingular : hePlural;
-      return en;
-    }
-
-    if (seconds < 60) {
-      return '$seconds ${unit(seconds, 's', 'ثانية', 'ثواني', 'שנייה', 'שניות')}';
-    }
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    if (minutes < 60) {
-      final minuteText =
-          '$minutes ${unit(minutes, 'm', 'دقيقة', 'دقائق', 'דקה', 'דקות')}';
-      return remainingSeconds == 0
-          ? minuteText
-          : '$minuteText ${_formatDuration(context, remainingSeconds)}';
-    }
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    final hourText =
-        '$hours ${unit(hours, 'h', 'ساعة', 'ساعات', 'שעה', 'שעות')}';
-    return remainingMinutes == 0
-        ? hourText
-        : '$hourText ${_formatDuration(context, remainingMinutes * 60)}';
-  }
-
   List<int> _stepDurations(Map<String, dynamic> log) {
     final raw = log['step_durations_json'] as String?;
     if (raw == null || raw.isEmpty) return [];
@@ -431,7 +396,10 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => _refreshLogs(),
+            onRefresh: () async {
+              _refreshLogs();
+              await _logsFuture;
+            },
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               itemCount: logs.length,
@@ -493,7 +461,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                     child: Theme(
                       data: theme.copyWith(dividerColor: Colors.transparent),
                       child: AbsorbPointer(
-                        absorbing: _selectionMode,
+                        absorbing: false,
                         child: ExpansionTile(
                           tilePadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -580,7 +548,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                                       _LogDetailRow(
                                         icon: Icons.timer_outlined,
                                         label: l10n.incidentLogTotalTime(
-                                          _formatDuration(
+                                          formatLocalizedDuration(
                                             context,
                                             displayElapsedSeconds,
                                           ),
@@ -604,7 +572,7 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                                               ),
                                           child: _StepTimeRow(
                                             stepNumber: entry.key,
-                                            duration: _formatDuration(
+                                            duration: formatLocalizedDuration(
                                               context,
                                               entry.value,
                                             ),

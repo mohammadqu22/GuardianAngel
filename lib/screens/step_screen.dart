@@ -5,6 +5,7 @@ import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_theme.dart';
+import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
 import '../widgets/gradient_button.dart';
 import '../services/database_service.dart';
@@ -259,42 +260,6 @@ class _StepScreenState extends State<StepScreen> {
     return baseElapsed < 0 ? 0 : baseElapsed;
   }
 
-  String _formatDuration(int seconds) {
-    String unit(
-      int value,
-      String en,
-      String arSingular,
-      String arPlural,
-      String heSingular,
-      String hePlural,
-    ) {
-      final code = Localizations.localeOf(context).languageCode;
-      if (code == 'ar') return value == 1 ? arSingular : arPlural;
-      if (code == 'he') return value == 1 ? heSingular : hePlural;
-      return en;
-    }
-
-    if (seconds < 60) {
-      return '$seconds ${unit(seconds, 's', 'ثانية', 'ثواني', 'שנייה', 'שניות')}';
-    }
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    if (minutes < 60) {
-      final minuteText =
-          '$minutes ${unit(minutes, 'm', 'دقيقة', 'دقائق', 'דקה', 'דקות')}';
-      return remainingSeconds == 0
-          ? minuteText
-          : '$minuteText ${_formatDuration(remainingSeconds)}';
-    }
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    final hourText =
-        '$hours ${unit(hours, 'h', 'ساعة', 'ساعات', 'שעה', 'שעות')}';
-    return remainingMinutes == 0
-        ? hourText
-        : '$hourText ${_formatDuration(remainingMinutes * 60)}';
-  }
-
   String _formatClockTime(DateTime time) {
     final locale = Localizations.localeOf(context).toLanguageTag();
     return useWesternDigits(intl.DateFormat.jm(locale).format(time.toLocal()));
@@ -306,16 +271,21 @@ class _StepScreenState extends State<StepScreen> {
     bool markEnded = false,
   }) async {
     final logId = widget.incidentLogId;
-    if (logId == null || _steps.isEmpty) return;
+    if (logId == null) return;
+
+    final totalSteps = _steps.length;
+    final completedSteps = totalSteps == 0 ? 0 : _maxVisitedStep;
 
     try {
       await DatabaseService.updateIncidentProgress(
         logId: logId,
-        completedSteps: _maxVisitedStep,
-        totalSteps: _steps.length,
-        isCompleted: isCompleted,
+        completedSteps: completedSteps,
+        totalSteps: totalSteps,
+        isCompleted: isCompleted && totalSteps > 0,
         elapsedSeconds: includeTiming ? _elapsedSessionSeconds() : null,
-        stepDurations: includeTiming ? List<int>.from(_stepDurations) : null,
+        stepDurations: includeTiming && _stepDurations.isNotEmpty
+            ? List<int>.from(_stepDurations)
+            : null,
         markEnded: markEnded,
       );
     } catch (_) {
@@ -761,7 +731,10 @@ class _StepScreenState extends State<StepScreen> {
                           _buildTimingRow(
                             icon: Icons.timer_outlined,
                             label: l10n.stepCompleteTotalTime,
-                            value: _formatDuration(_elapsedSessionSeconds()),
+                            value: formatLocalizedDuration(
+                              context,
+                              _elapsedSessionSeconds(),
+                            ),
                           ),
                           const SizedBox(height: 10),
                           _buildTimingRow(

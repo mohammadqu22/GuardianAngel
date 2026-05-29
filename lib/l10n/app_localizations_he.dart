@@ -12,9 +12,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get appName => 'Guardian Angel';
 
   @override
-  String get homeSubtitle => 'תגובה לחירום';
-
-  @override
   String get homeSelectEmergency => 'בחר סוג חירום';
 
   @override
@@ -32,6 +29,17 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get homeSettingsTooltip => 'הגדרות';
+
+  @override
+  String get homePreviousPage => 'הקודם';
+
+  @override
+  String get homeNextPage => 'הבא';
+
+  @override
+  String homePageIndicator(int current, int total) {
+    return 'עמוד $current מתוך $total';
+  }
 
   @override
   String get emergencyChoking => 'חנק';

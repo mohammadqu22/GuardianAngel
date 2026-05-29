@@ -3,13 +3,21 @@
 
   "appName": "Guardian Angel",
 
-  "homeSubtitle": "Emergency Response",
   "homeSelectEmergency": "Select Emergency Type",
   "homeSearchHint": "Search emergency...",
   "homeNoResults": "No emergency found",
   "homeCallBtn": "CALL 101",
   "homeCallFailed": "Could not open dialer. Please call 101 manually.",
   "homeSettingsTooltip": "Settings",
+  "homePreviousPage": "Previous",
+  "homeNextPage": "Next",
+  "homePageIndicator": "Page {current} of {total}",
+  "@homePageIndicator": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
 
   "emergencyChoking": "Choking",
   "emergencyChokingInfant": "Choking (Infant)",

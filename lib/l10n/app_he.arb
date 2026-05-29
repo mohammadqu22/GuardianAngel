@@ -1,13 +1,21 @@
 {
   "@@locale": "he",
   "appName": "Guardian Angel",
-  "homeSubtitle": "תגובה לחירום",
   "homeSelectEmergency": "בחר סוג חירום",
   "homeSearchHint": "חפש חירום...",
   "homeNoResults": "לא נמצא חירום",
   "homeCallBtn": "התקשר 101",
   "homeCallFailed": "לא ניתן לפתוח את החייגן. אנא התקשר ל-101 ידנית.",
   "homeSettingsTooltip": "הגדרות",
+  "homePreviousPage": "הקודם",
+  "homeNextPage": "הבא",
+  "homePageIndicator": "עמוד {current} מתוך {total}",
+  "@homePageIndicator": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "emergencyChoking": "חנק",
   "emergencyChokingInfant": "חנק (תינוק)",
   "emergencyCPR": "החייאה",

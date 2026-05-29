@@ -604,6 +604,36 @@ abstract class AppLocalizations {
   /// **'Location link copied! 📋'**
   String get settingsLocationCopied;
 
+  /// No description provided for @locationShareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share My Location'**
+  String get locationShareTitle;
+
+  /// No description provided for @locationShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'I need help! My current location: {link}'**
+  String locationShareMessage(String link);
+
+  /// No description provided for @locationShareWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get locationShareWhatsApp;
+
+  /// No description provided for @locationShareSms.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS'**
+  String get locationShareSms;
+
+  /// No description provided for @locationShareNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'App not available on this device'**
+  String get locationShareNotAvailable;
+
   /// No description provided for @incidentLogTitle.
   ///
   /// In en, this message translates to:

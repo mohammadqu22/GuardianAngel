@@ -84,6 +84,16 @@
   "settingsLocationCoords": "קואורדינטות: {coords}",
   "settingsLocationCopy": "העתק קישור",
   "settingsLocationCopied": "קישור המיקום הועתק! 📋",
+  "locationShareTitle": "שתף את מיקומי",
+  "locationShareMessage": "אני צריך עזרה! המיקום שלי כרגע: {link}",
+  "@locationShareMessage": {
+    "placeholders": {
+      "link": { "type": "String" }
+    }
+  },
+  "locationShareWhatsApp": "וואטסאפ",
+  "locationShareSms": "מסרון",
+  "locationShareNotAvailable": "האפליקציה אינה זמינה במכשיר זה",
   "incidentLogTitle": "יומן אירועים",
   "incidentLogEntry": "נפתח פרוטוקול {emergencyTitle}",
   "incidentLogProgress": "הגעת ל-{completed} מתוך {total} שלבים",

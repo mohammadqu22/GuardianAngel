@@ -279,6 +279,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsLocationCopied => 'تم نسخ رابط الموقع! 📋';
 
   @override
+  String get locationShareTitle => 'مشاركة موقعي';
+
+  @override
+  String locationShareMessage(String link) {
+    return 'أحتاج إلى مساعدة! موقعي الحالي: $link';
+  }
+
+  @override
+  String get locationShareWhatsApp => 'واتساب';
+
+  @override
+  String get locationShareSms => 'رسالة نصية';
+
+  @override
+  String get locationShareNotAvailable => 'التطبيق غير متاح على هذا الجهاز';
+
+  @override
   String get incidentLogTitle => 'سجل الحوادث';
 
   @override

@@ -8,6 +8,7 @@ import '../core/app_theme.dart';
 import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/tts_service.dart';
 
@@ -46,6 +47,7 @@ class _StepScreenState extends State<StepScreen> {
   DateTime? _sessionEndedAt;
   DateTime? _stepStartedAt;
   List<int> _stepDurations = [];
+  bool _locationSharing = false; // guard against double-tap on location button
 
   void _checkScrollable() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -338,6 +340,27 @@ class _StepScreenState extends State<StepScreen> {
         foregroundColor: cs.onSurface,
         elevation: 0,
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.location_on_outlined),
+            tooltip: l10n.settingsShareLocation,
+            // Fix #9: null disables the button while a share is in progress,
+            // preventing double-tap from opening two GPS dialogs.
+            onPressed: _locationSharing
+                ? null
+                : () async {
+                    setState(() => _locationSharing = true);
+                    try {
+                      await ShareLocationSheet.show(
+                        context,
+                        accentColor: widget.emergencyColor,
+                      );
+                    } finally {
+                      if (mounted) setState(() => _locationSharing = false);
+                    }
+                  },
+          ),
+        ],
       ),
       body: _loading
           ? Center(

@@ -93,6 +93,16 @@
   "settingsLocationCoords": "الإحداثيات: {coords}",
   "settingsLocationCopy": "نسخ الرابط",
   "settingsLocationCopied": "تم نسخ رابط الموقع! 📋",
+  "locationShareTitle": "مشاركة موقعي",
+  "locationShareMessage": "أحتاج إلى مساعدة! موقعي الحالي: {link}",
+  "@locationShareMessage": {
+    "placeholders": {
+      "link": { "type": "String" }
+    }
+  },
+  "locationShareWhatsApp": "واتساب",
+  "locationShareSms": "رسالة نصية",
+  "locationShareNotAvailable": "التطبيق غير متاح على هذا الجهاز",
 
   "incidentLogTitle": "سجل الحوادث",
   "incidentLogEntry": "تم فتح بروتوكول {emergencyTitle}",

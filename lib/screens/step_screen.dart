@@ -47,6 +47,7 @@ class _StepScreenState extends State<StepScreen> {
   DateTime? _sessionEndedAt;
   DateTime? _stepStartedAt;
   List<int> _stepDurations = [];
+  bool _locationSharing = false; // guard against double-tap on location button
 
   void _checkScrollable() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -343,10 +344,21 @@ class _StepScreenState extends State<StepScreen> {
           IconButton(
             icon: const Icon(Icons.location_on_outlined),
             tooltip: l10n.settingsShareLocation,
-            onPressed: () => ShareLocationSheet.show(
-              context,
-              accentColor: widget.emergencyColor,
-            ),
+            // Fix #9: null disables the button while a share is in progress,
+            // preventing double-tap from opening two GPS dialogs.
+            onPressed: _locationSharing
+                ? null
+                : () async {
+                    setState(() => _locationSharing = true);
+                    try {
+                      await ShareLocationSheet.show(
+                        context,
+                        accentColor: widget.emergencyColor,
+                      );
+                    } finally {
+                      if (mounted) setState(() => _locationSharing = false);
+                    }
+                  },
           ),
         ],
       ),

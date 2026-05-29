@@ -66,6 +66,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Fix #8: required for launchUrl to open sms: and whatsapp:// schemes on iOS. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>sms</string>
+		<string>whatsapp</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Guardian Angel requires access to your location to share with emergency responders and find nearby medical services.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

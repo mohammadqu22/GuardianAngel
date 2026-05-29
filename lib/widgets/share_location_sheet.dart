@@ -41,7 +41,15 @@ class ShareLocationSheet {
       },
     );
 
-    final position = await LocationService.getCurrentLocation();
+    // Fix #1 + #2: catch any exception from getCurrentLocation() (PlatformException,
+    // TimeoutException, etc.) and always dismiss the dialog via the outer mounted check.
+    final position = await () async {
+      try {
+        return await LocationService.getCurrentLocation();
+      } catch (_) {
+        return null;
+      }
+    }();
     if (context.mounted) Navigator.pop(context);
 
     if (position == null) {
@@ -58,7 +66,9 @@ class ShareLocationSheet {
 
     if (!context.mounted) return;
 
-    showModalBottomSheet<void>(
+    // Await the sheet so show() completes when the sheet is dismissed —
+    // this lets callers track whether sharing is in progress (e.g. re-entrancy guard).
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
@@ -165,15 +175,17 @@ class _ShareSheet extends StatelessWidget {
     String message,
     AppLocalizations l10n,
   ) async {
+    // Fix #4 + #6: capture messenger BEFORE pop, and use whatsapp:// deep-link
+    // so launchUrl correctly returns false when WhatsApp is not installed
+    // (the https://wa.me/ fallback always returns true on iOS, silently opening Safari).
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
     final encoded = Uri.encodeComponent(message);
-    final uri = Uri.parse('https://wa.me/?text=$encoded');
+    final uri = Uri.parse('whatsapp://send?text=$encoded');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.locationShareNotAvailable)),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.locationShareNotAvailable)),
+      );
     }
   }
 
@@ -182,15 +194,16 @@ class _ShareSheet extends StatelessWidget {
     String message,
     AppLocalizations l10n,
   ) async {
+    // Fix #6: capture messenger BEFORE pop so the snackbar is reachable
+    // even after the bottom sheet is dismissed.
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
     final encoded = Uri.encodeComponent(message);
     final uri = Uri.parse('sms:?body=$encoded');
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.locationShareNotAvailable)),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.locationShareNotAvailable)),
+      );
     }
   }
 
@@ -199,9 +212,13 @@ class _ShareSheet extends StatelessWidget {
     String link,
     AppLocalizations l10n,
   ) {
+    // Fix #5: capture messenger BEFORE pop; the bottom-sheet context is
+    // deactivated immediately after Navigator.pop, so ScaffoldMessenger.of(context)
+    // must not be called afterwards.
+    final messenger = ScaffoldMessenger.of(context);
     Clipboard.setData(ClipboardData(text: link));
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text(l10n.settingsLocationCopied)),
     );
   }

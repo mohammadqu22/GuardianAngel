@@ -21,19 +21,62 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const int _emergenciesPerPage = 4;
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int _emergencyPage = 0;
 
   /// Built inside build() so titles are always in the active locale.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
-    {'id': 'choking',         'title': l10n.emergencyChoking,        'icon': Icons.air,                        'color': AppColors.chokingBlue},
-    {'id': 'choking_infant',  'title': l10n.emergencyChokingInfant,  'icon': Icons.baby_changing_station,      'color': AppColors.chokingBlue},
-    {'id': 'cpr',             'title': l10n.emergencyCPR,            'icon': Icons.favorite,                   'color': AppColors.cprRed},
-    {'id': 'cpr_infant',      'title': l10n.emergencyCPRInfant,      'icon': Icons.monitor_heart,              'color': AppColors.cprRed},
-    {'id': 'burns',           'title': l10n.emergencyBurns,          'icon': Icons.local_fire_department,      'color': AppColors.burnOrange},
-    {'id': 'bleeding',        'title': l10n.emergencyBleeding,       'icon': Icons.water_drop,                 'color': AppColors.bleedingCrimson},
-    {'id': 'fractures',       'title': l10n.emergencyFractures,      'icon': Icons.healing,                    'color': AppColors.fracturePurple},
-    {'id': 'seizures',        'title': l10n.emergencySeizures,       'icon': Icons.warning_amber_rounded,      'color': AppColors.seizureAmber},
+    {
+      'id': 'choking',
+      'title': l10n.emergencyChoking,
+      'icon': Icons.air,
+      'color': AppColors.chokingBlue,
+    },
+    {
+      'id': 'choking_infant',
+      'title': l10n.emergencyChokingInfant,
+      'icon': Icons.baby_changing_station,
+      'color': AppColors.chokingBlue,
+    },
+    {
+      'id': 'cpr',
+      'title': l10n.emergencyCPR,
+      'icon': Icons.favorite,
+      'color': AppColors.cprRed,
+    },
+    {
+      'id': 'cpr_infant',
+      'title': l10n.emergencyCPRInfant,
+      'icon': Icons.monitor_heart,
+      'color': AppColors.cprRed,
+    },
+    {
+      'id': 'burns',
+      'title': l10n.emergencyBurns,
+      'icon': Icons.local_fire_department,
+      'color': AppColors.burnOrange,
+    },
+    {
+      'id': 'bleeding',
+      'title': l10n.emergencyBleeding,
+      'icon': Icons.water_drop,
+      'color': AppColors.bleedingCrimson,
+    },
+    {
+      'id': 'fractures',
+      'title': l10n.emergencyFractures,
+      'icon': Icons.healing,
+      'color': AppColors.fracturePurple,
+    },
+    {
+      'id': 'seizures',
+      'title': l10n.emergencySeizures,
+      'icon': Icons.warning_amber_rounded,
+      'color': AppColors.seizureAmber,
+    },
   ];
 
   @override
@@ -59,10 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => StepScreen(
-          emergencyId:    id,
+          emergencyId: id,
           emergencyTitle: title,
           emergencyColor: color,
-          incidentLogId:  incidentLogId,
+          incidentLogId: incidentLogId,
         ),
       ),
     );
@@ -70,17 +113,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n  = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final cs    = theme.colorScheme;
+    final cs = theme.colorScheme;
 
-    final allEmergencies      = _buildEmergencyList(l10n);
+    final allEmergencies = _buildEmergencyList(l10n);
     final query = _searchQuery.toLowerCase();
     final filteredEmergencies = _searchQuery.isEmpty
         ? allEmergencies
         : allEmergencies
-            .where((e) => (e['title'] as String).toLowerCase().contains(query))
-            .toList();
+              .where(
+                (e) => (e['title'] as String).toLowerCase().contains(query),
+              )
+              .toList();
+    final pageCount = filteredEmergencies.isEmpty
+        ? 1
+        : ((filteredEmergencies.length - 1) ~/ _emergenciesPerPage) + 1;
+    final currentPage = _emergencyPage.clamp(0, pageCount - 1);
+    final currentEmergencies = filteredEmergencies
+        .skip(currentPage * _emergenciesPerPage)
+        .take(_emergenciesPerPage)
+        .toList();
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -91,70 +144,69 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.appName,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.bold,
+              SizedBox(
+                height: 92,
+                width: double.infinity,
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/branding/guardian_angel_logo_concept.png',
+                          height: 88,
+                          semanticLabel: l10n.appName,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.homeSubtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Settings icon
-                  IconButton(
-                    tooltip: l10n.homeSettingsTooltip,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SettingsScreen(
-                            onThemeModeChanged: widget.onThemeModeChanged,
-                            onLocaleChanged: widget.onLocaleChanged,
+                      ],
+                    ),
+                    // Settings icon
+                    Align(
+                      alignment: AlignmentDirectional.topEnd,
+                      child: IconButton(
+                        tooltip: l10n.homeSettingsTooltip,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SettingsScreen(
+                                onThemeModeChanged: widget.onThemeModeChanged,
+                                onLocaleChanged: widget.onLocaleChanged,
+                              ),
+                            ),
+                          );
+                        },
+                        style: IconButton.styleFrom(
+                          backgroundColor: cs.surfaceContainerLow,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
+                          fixedSize: const Size(48, 48),
                         ),
-                      );
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: cs.surfaceContainerLow,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        icon: Icon(
+                          Icons.settings_outlined,
+                          color: cs.onSurface,
+                          size: 24,
+                        ),
                       ),
-                      fixedSize: const Size(48, 48),
                     ),
-                    icon: Icon(
-                      Icons.settings_outlined,
-                      color: cs.onSurface,
-                      size: 24,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
 
               // ── Section title ──
-              Text(
-                l10n.homeSelectEmergency,
-                style: theme.textTheme.titleLarge,
-              ),
+              Text(l10n.homeSelectEmergency, style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
 
               // ── Search Bar ──
               TextField(
                 controller: _searchController,
-                onChanged: (value) => setState(() => _searchQuery = value),
+                onChanged: (value) => setState(() {
+                  _searchQuery = value;
+                  _emergencyPage = 0;
+                }),
                 decoration: InputDecoration(
                   hintText: l10n.homeSearchHint,
                   prefixIcon: Icon(Icons.search, color: cs.outline),
@@ -164,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () => setState(() {
                             _searchController.clear();
                             _searchQuery = '';
+                            _emergencyPage = 0;
                           }),
                         )
                       : null,
@@ -189,22 +242,46 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       )
-                    : GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        padding: EdgeInsets.only(
-                          bottom: 64 + 16 + MediaQuery.of(context).padding.bottom,
-                        ),
-                        children: filteredEmergencies
-                            .map((e) => _buildEmergencyCard(
-                                  context,
-                                  id:    e['id']    as String,
-                                  title: e['title'] as String,
-                                  icon:  e['icon']  as IconData,
-                                  color: e['color'] as Color,
-                                ))
-                            .toList(),
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                const spacing = 16.0;
+                                final cardWidth =
+                                    (constraints.maxWidth - spacing) / 2;
+                                final cardHeight =
+                                    (constraints.maxHeight - spacing) / 2;
+
+                                return GridView.count(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: spacing,
+                                  mainAxisSpacing: spacing,
+                                  childAspectRatio: cardWidth / cardHeight,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: EdgeInsets.zero,
+                                  children: currentEmergencies
+                                      .map(
+                                        (e) => _buildEmergencyCard(
+                                          context,
+                                          id: e['id'] as String,
+                                          title: e['title'] as String,
+                                          icon: e['icon'] as IconData,
+                                          color: e['color'] as Color,
+                                        ),
+                                      )
+                                      .toList(),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildPageControls(
+                            context,
+                            currentPage: currentPage,
+                            pageCount: pageCount,
+                          ),
+                        ],
                       ),
               ),
             ],
@@ -212,62 +289,112 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // ── SOS FAB ──
-      floatingActionButton: Builder(
-        builder: (context) {
-          final fabCs  = Theme.of(context).colorScheme;
-          final fabL10n = AppLocalizations.of(context)!;
-          return Semantics(
-            button: true,
-            label: fabL10n.homeCallBtn,
-            child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: const Alignment(-0.97, -0.26),
-                  end: const Alignment(0.97, 0.26),
-                  colors: [fabCs.primary, fabCs.primaryContainer],
-                ),
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: fabCs.onSurface.withValues(alpha: 0.08),
-                    offset: const Offset(0, 16),
-                    blurRadius: 40,
+      // ── SOS bottom bar ──
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+        child: _buildCallButton(context),
+      ),
+    );
+  }
+
+  Widget _buildPageControls(
+    BuildContext context, {
+    required int currentPage,
+    required int pageCount,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final canGoBack = currentPage > 0;
+    final canGoForward = currentPage < pageCount - 1;
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: canGoBack
+                ? () => setState(() => _emergencyPage = currentPage - 1)
+                : null,
+            icon: const Icon(Icons.chevron_left),
+            label: Text(l10n.homePreviousPage),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            l10n.homePageIndicator(currentPage + 1, pageCount),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
+          ),
+        ),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: canGoForward
+                ? () => setState(() => _emergencyPage = currentPage + 1)
+                : null,
+            icon: const Icon(Icons.chevron_right),
+            label: Text(l10n.homeNextPage),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCallButton(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Semantics(
+      button: true,
+      label: l10n.homeCallBtn,
+      child: SizedBox(
+        height: 52,
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: const Alignment(-0.97, -0.26),
+              end: const Alignment(0.97, 0.26),
+              colors: [cs.primary, cs.primaryContainer],
+            ),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: cs.onSurface.withValues(alpha: 0.08),
+                offset: const Offset(0, 10),
+                blurRadius: 28,
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(26),
+              onTap: () => PhoneService.call(
+                '101',
+                context,
+                l10n.homeCallFailed,
+                duration: const Duration(seconds: 3),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.phone, color: cs.onPrimary, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    l10n.homeCallBtn,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: cs.onPrimary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ],
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(32),
-                  onTap: () => PhoneService.call(
-                    '101', context, fabL10n.homeCallFailed,
-                    duration: const Duration(seconds: 3),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.phone, color: fabCs.onPrimary, size: 22),
-                        const SizedBox(width: 10),
-                        Text(
-                          fabL10n.homeCallBtn,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: fabCs.onPrimary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

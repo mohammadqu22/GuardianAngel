@@ -3,13 +3,21 @@
 
   "appName": "Guardian Angel",
 
-  "homeSubtitle": "الاستجابة للطوارئ",
   "homeSelectEmergency": "اختر نوع الطارئ",
   "homeSearchHint": "البحث عن طارئ...",
   "homeNoResults": "لم يُعثر على حالة طوارئ",
   "homeCallBtn": "اتصل بـ 101",
   "homeCallFailed": "تعذر فتح الهاتف. يرجى الاتصال بـ 101 يدويًا.",
   "homeSettingsTooltip": "الإعدادات",
+  "homePreviousPage": "السابق",
+  "homeNextPage": "التالي",
+  "homePageIndicator": "صفحة {current} من {total}",
+  "@homePageIndicator": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
 
   "emergencyChoking": "اختناق",
   "emergencyChokingInfant": "اختناق (رضيع)",

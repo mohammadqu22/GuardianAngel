@@ -106,12 +106,6 @@ abstract class AppLocalizations {
   /// **'Guardian Angel'**
   String get appName;
 
-  /// No description provided for @homeSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Emergency Response'**
-  String get homeSubtitle;
-
   /// No description provided for @homeSelectEmergency.
   ///
   /// In en, this message translates to:
@@ -147,6 +141,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get homeSettingsTooltip;
+
+  /// No description provided for @homePreviousPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get homePreviousPage;
+
+  /// No description provided for @homeNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get homeNextPage;
+
+  /// No description provided for @homePageIndicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current} of {total}'**
+  String homePageIndicator(int current, int total);
 
   /// No description provided for @emergencyChoking.
   ///

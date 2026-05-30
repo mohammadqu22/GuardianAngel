@@ -78,5 +78,9 @@
 	<string>Guardian Angel requires access to your location to provide guidance based on your current vicinity.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Guardian Angel requires access to your location to find nearby help and share your coordinates with dispatchers during an emergency.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Guardian Angel uses the microphone so you can search for an emergency by voice.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Guardian Angel uses speech recognition to turn your spoken words into a search query.</string>
 </dict>
 </plist>

@@ -118,6 +118,24 @@ abstract class AppLocalizations {
   /// **'Search emergency...'**
   String get homeSearchHint;
 
+  /// No description provided for @homeDictationStartTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by voice'**
+  String get homeDictationStartTooltip;
+
+  /// No description provided for @homeDictationStopTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop voice search'**
+  String get homeDictationStopTooltip;
+
+  /// No description provided for @homeDictationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice search is unavailable on this device.'**
+  String get homeDictationUnavailable;
+
   /// No description provided for @homeNoResults.
   ///
   /// In en, this message translates to:

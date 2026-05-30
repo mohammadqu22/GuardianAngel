@@ -18,6 +18,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeSearchHint => 'البحث عن طارئ...';
 
   @override
+  String get homeDictationStartTooltip => 'البحث بالصوت';
+
+  @override
+  String get homeDictationStopTooltip => 'إيقاف البحث الصوتي';
+
+  @override
+  String get homeDictationUnavailable =>
+      'البحث الصوتي غير متاح على هذا الجهاز.';
+
+  @override
   String get homeNoResults => 'لم يُعثر على حالة طوارئ';
 
   @override

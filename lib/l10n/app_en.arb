@@ -5,6 +5,9 @@
 
   "homeSelectEmergency": "Select Emergency Type",
   "homeSearchHint": "Search emergency...",
+  "homeDictationStartTooltip": "Search by voice",
+  "homeDictationStopTooltip": "Stop voice search",
+  "homeDictationUnavailable": "Voice search is unavailable on this device.",
   "homeNoResults": "No emergency found",
   "homeCallBtn": "CALL 101",
   "homeCallFailed": "Could not open dialer. Please call 101 manually.",

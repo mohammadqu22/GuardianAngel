@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'step_screen.dart';
 import 'settings_screen.dart';
 import '../core/app_theme.dart';
@@ -24,8 +27,16 @@ class _HomeScreenState extends State<HomeScreen> {
   static const int _emergenciesPerPage = 4;
 
   final TextEditingController _searchController = TextEditingController();
+  final SpeechToText _speech = SpeechToText();
+
   String _searchQuery = '';
   int _emergencyPage = 0;
+
+  // Voice-search state.
+  bool _speechReady = false;
+  bool _speechInitializing = false;
+  bool _isListening = false;
+  List<LocaleName> _speechLocales = const [];
 
   /// Built inside build() so titles are always in the active locale.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
@@ -81,8 +92,123 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _speech.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _setSearchQuery(String value) {
+    setState(() {
+      _searchQuery = value;
+      _emergencyPage = 0;
+    });
+  }
+
+  /// Lazily initializes the speech engine the first time the mic is tapped.
+  /// Returns whether recognition is usable. Permission prompts and missing
+  /// engines are reported via a snackbar so typing always stays available.
+  Future<bool> _ensureSpeechReady(AppLocalizations l10n) async {
+    if (_speechReady) return true;
+    if (_speechInitializing) return false;
+
+    setState(() => _speechInitializing = true);
+    try {
+      final available = await _speech.initialize(
+        onStatus: _onSpeechStatus,
+        onError: (error) => _onSpeechError(error, l10n),
+      );
+      final locales = available ? await _speech.locales() : <LocaleName>[];
+
+      if (!mounted) return false;
+      setState(() {
+        _speechReady = available;
+        _speechLocales = locales;
+      });
+
+      if (!available) _showSnackBar(l10n.homeDictationUnavailable);
+      return available;
+    } catch (_) {
+      if (mounted) _showSnackBar(l10n.homeDictationUnavailable);
+      return false;
+    } finally {
+      if (mounted) setState(() => _speechInitializing = false);
+    }
+  }
+
+  Future<void> _toggleDictation(AppLocalizations l10n) async {
+    if (_isListening) {
+      await _speech.stop();
+      if (mounted) setState(() => _isListening = false);
+      return;
+    }
+
+    if (!await _ensureSpeechReady(l10n) || !mounted) return;
+
+    await _speech.listen(
+      onResult: _onSpeechResult,
+      listenOptions: SpeechListenOptions(
+        cancelOnError: true,
+        partialResults: true,
+        listenMode: ListenMode.search,
+        localeId: _localeIdFor(Localizations.localeOf(context)),
+        listenFor: const Duration(seconds: 20),
+        pauseFor: const Duration(seconds: 3),
+      ),
+    );
+
+    if (mounted) setState(() => _isListening = true);
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    final words = result.recognizedWords.trim();
+    if (words.isEmpty) return;
+    _searchController.value = TextEditingValue(
+      text: words,
+      selection: TextSelection.collapsed(offset: words.length),
+    );
+    _setSearchQuery(words);
+  }
+
+  void _onSpeechStatus(String status) {
+    final listening = status == SpeechToText.listeningStatus;
+    if (mounted && _isListening != listening) {
+      setState(() => _isListening = listening);
+    }
+  }
+
+  void _onSpeechError(SpeechRecognitionError error, AppLocalizations l10n) {
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      if (error.permanent) _speechReady = false;
+    });
+    if (error.permanent) _showSnackBar(l10n.homeDictationUnavailable);
+  }
+
+  /// Maps the active app locale to the closest available recognizer locale,
+  /// falling back to a sensible default code when none is installed.
+  String? _localeIdFor(Locale locale) {
+    final preferred = switch (locale.languageCode) {
+      'he' => const ['he_IL', 'he-IL', 'he'],
+      'ar' => const ['ar_SA', 'ar-SA', 'ar'],
+      _ => const ['en_US', 'en-US', 'en'],
+    };
+
+    for (final id in preferred) {
+      if (_speechLocales.any((l) => l.localeId == id)) return id;
+    }
+    for (final l in _speechLocales) {
+      if (l.localeId.split(RegExp('[-_]')).first == locale.languageCode) {
+        return l.localeId;
+      }
+    }
+    return preferred.first;
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openEmergency({
@@ -203,23 +329,38 @@ class _HomeScreenState extends State<HomeScreen> {
               // ── Search Bar ──
               TextField(
                 controller: _searchController,
-                onChanged: (value) => setState(() {
-                  _searchQuery = value;
-                  _emergencyPage = 0;
-                }),
+                onChanged: _setSearchQuery,
                 decoration: InputDecoration(
                   hintText: l10n.homeSearchHint,
                   prefixIcon: Icon(Icons.search, color: cs.outline),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).deleteButtonTooltip,
                           icon: Icon(Icons.clear, color: cs.outline),
-                          onPressed: () => setState(() {
+                          onPressed: () {
                             _searchController.clear();
-                            _searchQuery = '';
-                            _emergencyPage = 0;
-                          }),
-                        )
-                      : null,
+                            _setSearchQuery('');
+                          },
+                        ),
+                      IconButton(
+                        tooltip: _isListening
+                            ? l10n.homeDictationStopTooltip
+                            : l10n.homeDictationStartTooltip,
+                        onPressed: _speechInitializing
+                            ? null
+                            : () => _toggleDictation(l10n),
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? cs.primary : cs.outline,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -419,26 +560,34 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 1,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 40, color: color),
+        // FittedBox keeps the card content from overflowing when the grid is
+        // squeezed into a short space (small screens / compact test windows).
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 40, color: color),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: cs.onSurface,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

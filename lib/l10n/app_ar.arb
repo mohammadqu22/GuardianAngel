@@ -5,6 +5,9 @@
 
   "homeSelectEmergency": "اختر نوع الطارئ",
   "homeSearchHint": "البحث عن طارئ...",
+  "homeDictationStartTooltip": "البحث بالصوت",
+  "homeDictationStopTooltip": "إيقاف البحث الصوتي",
+  "homeDictationUnavailable": "البحث الصوتي غير متاح على هذا الجهاز.",
   "homeNoResults": "لم يُعثر على حالة طوارئ",
   "homeCallBtn": "اتصل بـ 101",
   "homeCallFailed": "تعذر فتح الهاتف. يرجى الاتصال بـ 101 يدويًا.",

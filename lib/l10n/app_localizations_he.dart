@@ -18,6 +18,15 @@ class AppLocalizationsHe extends AppLocalizations {
   String get homeSearchHint => 'חפש חירום...';
 
   @override
+  String get homeDictationStartTooltip => 'חיפוש קולי';
+
+  @override
+  String get homeDictationStopTooltip => 'עצור חיפוש קולי';
+
+  @override
+  String get homeDictationUnavailable => 'חיפוש קולי אינו זמין במכשיר זה.';
+
+  @override
   String get homeNoResults => 'לא נמצא חירום';
 
   @override

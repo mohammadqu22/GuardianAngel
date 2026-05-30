@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _searchQuery = '';
   int _emergencyPage = 0;
+  Locale? _lastLocale;
 
   // Voice-search state.
   bool _speechReady = false;
@@ -91,10 +92,72 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    // When the language is switched (e.g. from Settings), the emergency titles
+    // change language, so a leftover search query no longer matches. Reset the
+    // search so the user returns to a clean home screen in the new language.
+    if (_lastLocale != null && _lastLocale != locale) {
+      _searchController.clear();
+      _searchQuery = '';
+      _emergencyPage = 0;
+      if (_isListening) {
+        _speech.stop();
+        _isListening = false;
+      }
+    }
+    _lastLocale = locale;
+  }
+
+  @override
   void dispose() {
     _speech.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Normalizes text for locale-tolerant search matching. Speech recognition
+  /// (especially Arabic/Hebrew) can add vowel diacritics, tatweel, or
+  /// bidirectional control characters and use different letter forms, so the
+  /// raw dictated string may not literally equal the stored title. Stripping
+  /// those and unifying common letter variants lets matches succeed.
+  static String _normalizeForSearch(String input) {
+    final buffer = StringBuffer();
+    for (var ch in input.runes) {
+      // Arabic diacritics (tashkeel) and Hebrew niqqud / cantillation marks.
+      if ((ch >= 0x0610 && ch <= 0x061A) ||
+          (ch >= 0x064B && ch <= 0x065F) ||
+          ch == 0x0670 ||
+          (ch >= 0x06D6 && ch <= 0x06ED) ||
+          ch == 0x0640 || // Arabic tatweel
+          (ch >= 0x0591 && ch <= 0x05BD) ||
+          ch == 0x05BF ||
+          ch == 0x05C1 ||
+          ch == 0x05C2 ||
+          ch == 0x05C4 ||
+          ch == 0x05C5 ||
+          ch == 0x05C7) {
+        continue;
+      }
+      // Bidirectional control characters.
+      if (ch == 0x200E ||
+          ch == 0x200F ||
+          ch == 0x061C ||
+          (ch >= 0x202A && ch <= 0x202E) ||
+          (ch >= 0x2066 && ch <= 0x2069)) {
+        continue;
+      }
+      // Unify Arabic alef variants (آ أ إ → ا) and alef-maqsura (ى → ي).
+      if (ch == 0x0622 || ch == 0x0623 || ch == 0x0625) ch = 0x0627;
+      if (ch == 0x0649) ch = 0x064A;
+      buffer.writeCharCode(ch);
+    }
+    return buffer
+        .toString()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   void _setSearchQuery(String value) {
@@ -244,12 +307,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = theme.colorScheme;
 
     final allEmergencies = _buildEmergencyList(l10n);
-    final query = _searchQuery.toLowerCase();
-    final filteredEmergencies = _searchQuery.isEmpty
+    final query = _normalizeForSearch(_searchQuery);
+    final filteredEmergencies = query.isEmpty
         ? allEmergencies
         : allEmergencies
               .where(
-                (e) => (e['title'] as String).toLowerCase().contains(query),
+                (e) =>
+                    _normalizeForSearch(e['title'] as String).contains(query),
               )
               .toList();
     final pageCount = filteredEmergencies.isEmpty

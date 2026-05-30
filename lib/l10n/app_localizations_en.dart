@@ -18,6 +18,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSearchHint => 'Search emergency...';
 
   @override
+  String get homeDictationStartTooltip => 'Search by voice';
+
+  @override
+  String get homeDictationStopTooltip => 'Stop voice search';
+
+  @override
+  String get homeDictationUnavailable =>
+      'Voice search is unavailable on this device.';
+
+  @override
   String get homeNoResults => 'No emergency found';
 
   @override

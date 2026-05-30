@@ -62,6 +62,9 @@ dependencies:
   # Brand icons (WhatsApp, etc.)
   font_awesome_flutter: ^10.7.0
 
+  # On-device speech recognition for search-bar dictation
+  speech_to_text: ^7.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -14,9 +14,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Guardian Angel'), findsOneWidget);
+    // The header shows the branded logo image (labelled "Guardian Angel"),
+    // not a text widget, so assert on the section title and emergency cards.
     expect(find.text('Select Emergency Type'), findsOneWidget);
     expect(find.text('Choking'), findsOneWidget);
     expect(find.text('Choking (Infant)'), findsOneWidget);
+
+    // The search bar exposes a voice-search (dictation) button.
+    expect(find.byTooltip('Search by voice'), findsOneWidget);
   });
 }

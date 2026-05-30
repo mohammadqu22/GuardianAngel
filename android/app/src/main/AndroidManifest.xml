@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.CALL_PHONE"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     
     <application
         android:label="Guardian Angel"
@@ -47,6 +48,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- speech_to_text: required on Android 11+ so the on-device speech
+             recognizer service is visible to the app for voice search. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
         <!-- Fix #7: Android 11+ package visibility — required for launchUrl to
              resolve the WhatsApp deep-link on API 30+ devices. -->

@@ -25,6 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _gridController = ScrollController();
   final SpeechToText _speech = SpeechToText();
 
   String _searchQuery = '';
@@ -103,8 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_lastLocale != null && _lastLocale != locale) {
       _searchController.clear();
       _searchQuery = '';
-      _gridScrolledFromTop = false;
-      _gridAtBottom = false;
+      _resetGridScroll();
       if (_isListening) {
         _speech.stop();
         _isListening = false;
@@ -116,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _speech.cancel();
+    _gridController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -166,9 +167,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setSearchQuery(String value) {
     setState(() {
       _searchQuery = value;
-      _gridScrolledFromTop = false;
-      _gridAtBottom = false;
+      _resetGridScroll();
     });
+  }
+
+  void _resetGridScroll() {
+    _gridScrolledFromTop = false;
+    _gridAtBottom = false;
+    if (!_gridController.hasClients) return;
+    _gridController.jumpTo(0);
   }
 
   /// Lazily initializes the speech engine the first time the mic is tapped.
@@ -446,16 +453,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           const spacing = 16.0;
-                          // When the list is taller than the viewport, shrink the
-                          // cards just enough that the next row "peeks" from below
-                          // — a clear cue that there are more protocols to scroll
-                          // to. Four or fewer cards fit without a peek.
+                          // When there are more than four protocols, shrink the
+                          // cards enough that the next row peeks from below. That
+                          // gives a clear cue that more protocols are available.
                           const peek = 44.0;
                           final hasOverflow = filteredEmergencies.length > 4;
-                          final available = constraints.maxHeight -
+                          final available =
+                              constraints.maxHeight -
                               spacing -
                               (hasOverflow ? spacing + peek : 0);
-                          final cardHeight = available > 160 ? available / 2 : 80;
+                          final cardHeight = available > 160
+                              ? available / 2
+                              : 80;
                           final showBottomFade = hasOverflow && !_gridAtBottom;
 
                           return NotificationListener<ScrollNotification>(
@@ -463,6 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Stack(
                               children: [
                                 GridView.builder(
+                                  controller: _gridController,
                                   physics: const BouncingScrollPhysics(),
                                   padding: EdgeInsets.zero,
                                   gridDelegate:
@@ -519,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _onGridScroll(ScrollNotification notification) {
     final m = notification.metrics;
     final fromTop = m.pixels > 8;
-    final atBottom = m.pixels >= m.maxScrollExtent - 8;
+    final atBottom = m.extentAfter == 0;
     if (fromTop != _gridScrolledFromTop || atBottom != _gridAtBottom) {
       setState(() {
         _gridScrolledFromTop = fromTop;
@@ -635,10 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           // Accent-tinted edge ties each card to its emergency colour while
           // staying legible on both light and dark surfaces.
-          border: Border.all(
-            color: color.withValues(alpha: 0.45),
-            width: 1.5,
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.45), width: 1.5),
         ),
         // FittedBox keeps the card content from overflowing when the grid is
         // squeezed into a short space (small screens / compact test windows).

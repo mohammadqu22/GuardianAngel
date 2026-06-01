@@ -24,14 +24,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const int _emergenciesPerPage = 4;
-
   final TextEditingController _searchController = TextEditingController();
   final SpeechToText _speech = SpeechToText();
 
   String _searchQuery = '';
-  int _emergencyPage = 0;
   Locale? _lastLocale;
+
+  // Scroll-affordance fades for the emergency grid: the bottom fade hints that
+  // more protocols lie below, the top fade appears once the user scrolls down.
+  bool _gridScrolledFromTop = false;
+  bool _gridAtBottom = false;
 
   // Voice-search state.
   bool _speechReady = false;
@@ -101,7 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_lastLocale != null && _lastLocale != locale) {
       _searchController.clear();
       _searchQuery = '';
-      _emergencyPage = 0;
+      _gridScrolledFromTop = false;
+      _gridAtBottom = false;
       if (_isListening) {
         _speech.stop();
         _isListening = false;
@@ -163,7 +166,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setSearchQuery(String value) {
     setState(() {
       _searchQuery = value;
-      _emergencyPage = 0;
+      _gridScrolledFromTop = false;
+      _gridAtBottom = false;
     });
   }
 
@@ -316,14 +320,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     _normalizeForSearch(e['title'] as String).contains(query),
               )
               .toList();
-    final pageCount = filteredEmergencies.isEmpty
-        ? 1
-        : ((filteredEmergencies.length - 1) ~/ _emergenciesPerPage) + 1;
-    final currentPage = _emergencyPage.clamp(0, pageCount - 1);
-    final currentEmergencies = filteredEmergencies
-        .skip(currentPage * _emergenciesPerPage)
-        .take(_emergenciesPerPage)
-        .toList();
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -429,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
 
-              // ── Grid or "No results" ──
+              // ── Scrollable grid or "No results" ──
               Expanded(
                 child: filteredEmergencies.isEmpty
                     ? Center(
@@ -447,46 +443,61 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       )
-                    : Column(
-                        children: [
-                          Expanded(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                const spacing = 16.0;
-                                final cardWidth =
-                                    (constraints.maxWidth - spacing) / 2;
-                                final cardHeight =
-                                    (constraints.maxHeight - spacing) / 2;
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 16.0;
+                          // When the list is taller than the viewport, shrink the
+                          // cards just enough that the next row "peeks" from below
+                          // — a clear cue that there are more protocols to scroll
+                          // to. Four or fewer cards fit without a peek.
+                          const peek = 44.0;
+                          final hasOverflow = filteredEmergencies.length > 4;
+                          final available = constraints.maxHeight -
+                              spacing -
+                              (hasOverflow ? spacing + peek : 0);
+                          final cardHeight = available > 160 ? available / 2 : 80;
+                          final showBottomFade = hasOverflow && !_gridAtBottom;
 
-                                return GridView.count(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: spacing,
-                                  mainAxisSpacing: spacing,
-                                  childAspectRatio: cardWidth / cardHeight,
-                                  physics: const NeverScrollableScrollPhysics(),
+                          return NotificationListener<ScrollNotification>(
+                            onNotification: _onGridScroll,
+                            child: Stack(
+                              children: [
+                                GridView.builder(
+                                  physics: const BouncingScrollPhysics(),
                                   padding: EdgeInsets.zero,
-                                  children: currentEmergencies
-                                      .map(
-                                        (e) => _buildEmergencyCard(
-                                          context,
-                                          id: e['id'] as String,
-                                          title: e['title'] as String,
-                                          icon: e['icon'] as IconData,
-                                          color: e['color'] as Color,
-                                        ),
-                                      )
-                                      .toList(),
-                                );
-                              },
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: spacing,
+                                        mainAxisSpacing: spacing,
+                                        mainAxisExtent: cardHeight.toDouble(),
+                                      ),
+                                  itemCount: filteredEmergencies.length,
+                                  itemBuilder: (context, i) {
+                                    final e = filteredEmergencies[i];
+                                    return _buildEmergencyCard(
+                                      context,
+                                      id: e['id'] as String,
+                                      title: e['title'] as String,
+                                      icon: e['icon'] as IconData,
+                                      color: e['color'] as Color,
+                                    );
+                                  },
+                                ),
+                                _buildScrollFade(
+                                  top: true,
+                                  visible: _gridScrolledFromTop,
+                                  color: cs.surface,
+                                ),
+                                _buildScrollFade(
+                                  top: false,
+                                  visible: showBottomFade,
+                                  color: cs.surface,
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildPageControls(
-                            context,
-                            currentPage: currentPage,
-                            pageCount: pageCount,
-                          ),
-                        ],
+                          );
+                        },
                       ),
               ),
             ],
@@ -503,46 +514,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPageControls(
-    BuildContext context, {
-    required int currentPage,
-    required int pageCount,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final canGoBack = currentPage > 0;
-    final canGoForward = currentPage < pageCount - 1;
+  /// Keeps the edge fades in sync with the scroll position: the top fade shows
+  /// once scrolled away from the top, the bottom fade hides at the very end.
+  bool _onGridScroll(ScrollNotification notification) {
+    final m = notification.metrics;
+    final fromTop = m.pixels > 8;
+    final atBottom = m.pixels >= m.maxScrollExtent - 8;
+    if (fromTop != _gridScrolledFromTop || atBottom != _gridAtBottom) {
+      setState(() {
+        _gridScrolledFromTop = fromTop;
+        _gridAtBottom = atBottom;
+      });
+    }
+    return false;
+  }
 
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: canGoBack
-                ? () => setState(() => _emergencyPage = currentPage - 1)
-                : null,
-            icon: const Icon(Icons.chevron_left),
-            label: Text(l10n.homePreviousPage),
+  /// A soft gradient that dissolves the grid edge into the background, signalling
+  /// that content continues past the visible area. Theme-aware via [color].
+  Widget _buildScrollFade({
+    required bool top,
+    required bool visible,
+    required Color color,
+  }) {
+    return Positioned(
+      top: top ? 0 : null,
+      bottom: top ? null : 0,
+      left: 0,
+      right: 0,
+      height: 52,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          opacity: visible ? 1 : 0,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: top ? Alignment.topCenter : Alignment.bottomCenter,
+                end: top ? Alignment.bottomCenter : Alignment.topCenter,
+                colors: [color, color.withValues(alpha: 0)],
+              ),
+            ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            l10n.homePageIndicator(currentPage + 1, pageCount),
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant),
-          ),
-        ),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: canGoForward
-                ? () => setState(() => _emergencyPage = currentPage + 1)
-                : null,
-            icon: const Icon(Icons.chevron_right),
-            label: Text(l10n.homeNextPage),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -619,9 +633,11 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppRadius.lg),
+          // Accent-tinted edge ties each card to its emergency colour while
+          // staying legible on both light and dark surfaces.
           border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.15),
-            width: 1,
+            color: color.withValues(alpha: 0.45),
+            width: 1.5,
           ),
         ),
         // FittedBox keeps the card content from overflowing when the grid is

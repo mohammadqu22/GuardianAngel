@@ -17,6 +17,7 @@ void main() {
     // The header shows the branded logo image (labelled "Guardian Angel"),
     // not a text widget, so assert on the section title and emergency cards.
     expect(find.text('Select Emergency Type'), findsOneWidget);
+    expect(find.text('Nearby Medical Help'), findsOneWidget);
     expect(find.text('Choking'), findsOneWidget);
     expect(find.text('Choking (Infant)'), findsOneWidget);
 

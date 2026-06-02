@@ -3,6 +3,7 @@ import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'nearby_medical_screen.dart';
 import 'step_screen.dart';
 import 'settings_screen.dart';
 import '../core/app_theme.dart';
@@ -311,6 +312,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openNearbyMedicalHelp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NearbyMedicalScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -430,7 +438,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+              _buildNearbyMedicalButton(context),
+              const SizedBox(height: 18),
 
               // ── Scrollable grid or "No results" ──
               Expanded(
@@ -622,6 +632,71 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNearbyMedicalButton(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Material(
+      color: cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: _openNearbyMedicalHelp,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(
+              color: AppColors.tertiary.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.tertiary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(
+                  Icons.local_hospital_outlined,
+                  color: AppColors.tertiary,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.homeNearbyMedical,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      l10n.homeNearbyMedicalSubtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: cs.outline),
+            ],
           ),
         ),
       ),

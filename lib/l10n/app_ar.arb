@@ -21,6 +21,8 @@
       "total": { "type": "int" }
     }
   },
+  "homeNearbyMedical": "مساعدة طبية قريبة",
+  "homeNearbyMedicalSubtitle": "مستشفيات وصيدليات وعيادات قريبة",
 
   "emergencyChoking": "اختناق",
   "emergencyChokingInfant": "اختناق (رضيع)",
@@ -114,6 +116,23 @@
   "locationShareWhatsApp": "واتساب",
   "locationShareSms": "رسالة نصية",
   "locationShareNotAvailable": "التطبيق غير متاح على هذا الجهاز",
+
+  "nearbyMedicalTitle": "مساعدة طبية قريبة",
+  "nearbyMedicalSubtitle": "افتح عمليات بحث طبية قريبة في تطبيق الملاحة.",
+  "nearbyMedicalEmergencyNotice": "في أي حالة طوارئ مهددة للحياة، اتصل أولًا بـ 101.",
+  "nearbyMedicalHospitals": "مستشفيات",
+  "nearbyMedicalHospitalsSubtitle": "ابحث عن غرف طوارئ ومستشفيات قريبة.",
+  "nearbyMedicalPharmacies": "صيدليات",
+  "nearbyMedicalPharmaciesSubtitle": "ابحث عن صيدليات قريبة واستلام الأدوية.",
+  "nearbyMedicalClinics": "عيادات",
+  "nearbyMedicalClinicsSubtitle": "ابحث عن عيادات ومراكز طبية قريبة.",
+  "nearbyMedicalCheckingLocation": "جارٍ فحص موقعك...",
+  "nearbyMedicalUsingLocation": "يتم استخدام موقعك الحالي للبحث القريب.",
+  "nearbyMedicalLocationFallback": "الموقع غير متاح. سيتم فتح البحث بدون إحداثياتك.",
+  "nearbyMedicalRefreshLocation": "تحديث الموقع",
+  "nearbyMedicalGoogleMaps": "Google Maps",
+  "nearbyMedicalWaze": "Waze",
+  "nearbyMedicalNavigationFailed": "تعذر فتح تطبيق الملاحة.",
 
   "incidentLogTitle": "سجل الحوادث",
   "incidentLogEntry": "تم فتح بروتوكول {emergencyTitle}",

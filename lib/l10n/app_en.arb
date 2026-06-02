@@ -21,6 +21,8 @@
       "total": { "type": "int" }
     }
   },
+  "homeNearbyMedical": "Nearby Medical Help",
+  "homeNearbyMedicalSubtitle": "Hospitals, pharmacies, and clinics nearby",
 
   "emergencyChoking": "Choking",
   "emergencyChokingInfant": "Choking (Infant)",
@@ -138,6 +140,23 @@
   "locationShareWhatsApp": "WhatsApp",
   "locationShareSms": "SMS",
   "locationShareNotAvailable": "App not available on this device",
+
+  "nearbyMedicalTitle": "Nearby Medical Help",
+  "nearbyMedicalSubtitle": "Open nearby medical searches in your navigation app.",
+  "nearbyMedicalEmergencyNotice": "Call 101 first for any life-threatening emergency.",
+  "nearbyMedicalHospitals": "Hospitals",
+  "nearbyMedicalHospitalsSubtitle": "Search for nearby emergency rooms and hospitals.",
+  "nearbyMedicalPharmacies": "Pharmacies",
+  "nearbyMedicalPharmaciesSubtitle": "Search for nearby pharmacies and medicine pickup.",
+  "nearbyMedicalClinics": "Clinics",
+  "nearbyMedicalClinicsSubtitle": "Search for nearby clinics and medical centers.",
+  "nearbyMedicalCheckingLocation": "Checking your location...",
+  "nearbyMedicalUsingLocation": "Using your current location for nearby searches.",
+  "nearbyMedicalLocationFallback": "Location is unavailable. Searches will still open without your coordinates.",
+  "nearbyMedicalRefreshLocation": "Refresh location",
+  "nearbyMedicalGoogleMaps": "Google Maps",
+  "nearbyMedicalWaze": "Waze",
+  "nearbyMedicalNavigationFailed": "Navigation app could not be opened.",
 
   "incidentLogTitle": "Incident Log",
   "incidentLogEntry": "Opened {emergencyTitle} protocol",

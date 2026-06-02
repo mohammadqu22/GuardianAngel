@@ -52,6 +52,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeNearbyMedical => 'Nearby Medical Help';
+
+  @override
+  String get homeNearbyMedicalSubtitle =>
+      'Hospitals, pharmacies, and clinics nearby';
+
+  @override
   String get emergencyChoking => 'Choking';
 
   @override
@@ -314,6 +321,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationShareNotAvailable => 'App not available on this device';
+
+  @override
+  String get nearbyMedicalTitle => 'Nearby Medical Help';
+
+  @override
+  String get nearbyMedicalSubtitle =>
+      'Open nearby medical searches in your navigation app.';
+
+  @override
+  String get nearbyMedicalEmergencyNotice =>
+      'Call 101 first for any life-threatening emergency.';
+
+  @override
+  String get nearbyMedicalHospitals => 'Hospitals';
+
+  @override
+  String get nearbyMedicalHospitalsSubtitle =>
+      'Search for nearby emergency rooms and hospitals.';
+
+  @override
+  String get nearbyMedicalPharmacies => 'Pharmacies';
+
+  @override
+  String get nearbyMedicalPharmaciesSubtitle =>
+      'Search for nearby pharmacies and medicine pickup.';
+
+  @override
+  String get nearbyMedicalClinics => 'Clinics';
+
+  @override
+  String get nearbyMedicalClinicsSubtitle =>
+      'Search for nearby clinics and medical centers.';
+
+  @override
+  String get nearbyMedicalCheckingLocation => 'Checking your location...';
+
+  @override
+  String get nearbyMedicalUsingLocation =>
+      'Using your current location for nearby searches.';
+
+  @override
+  String get nearbyMedicalLocationFallback =>
+      'Location is unavailable. Searches will still open without your coordinates.';
+
+  @override
+  String get nearbyMedicalRefreshLocation => 'Refresh location';
+
+  @override
+  String get nearbyMedicalGoogleMaps => 'Google Maps';
+
+  @override
+  String get nearbyMedicalWaze => 'Waze';
+
+  @override
+  String get nearbyMedicalNavigationFailed =>
+      'Navigation app could not be opened.';
 
   @override
   String get incidentLogTitle => 'Incident Log';

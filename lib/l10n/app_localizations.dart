@@ -178,6 +178,18 @@ abstract class AppLocalizations {
   /// **'Page {current} of {total}'**
   String homePageIndicator(int current, int total);
 
+  /// No description provided for @homeNearbyMedical.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby Medical Help'**
+  String get homeNearbyMedical;
+
+  /// No description provided for @homeNearbyMedicalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hospitals, pharmacies, and clinics nearby'**
+  String get homeNearbyMedicalSubtitle;
+
   /// No description provided for @emergencyChoking.
   ///
   /// In en, this message translates to:
@@ -663,6 +675,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'App not available on this device'**
   String get locationShareNotAvailable;
+
+  /// No description provided for @nearbyMedicalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearby Medical Help'**
+  String get nearbyMedicalTitle;
+
+  /// No description provided for @nearbyMedicalSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open nearby medical searches in your navigation app.'**
+  String get nearbyMedicalSubtitle;
+
+  /// No description provided for @nearbyMedicalEmergencyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Call 101 first for any life-threatening emergency.'**
+  String get nearbyMedicalEmergencyNotice;
+
+  /// No description provided for @nearbyMedicalHospitals.
+  ///
+  /// In en, this message translates to:
+  /// **'Hospitals'**
+  String get nearbyMedicalHospitals;
+
+  /// No description provided for @nearbyMedicalHospitalsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for nearby emergency rooms and hospitals.'**
+  String get nearbyMedicalHospitalsSubtitle;
+
+  /// No description provided for @nearbyMedicalPharmacies.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacies'**
+  String get nearbyMedicalPharmacies;
+
+  /// No description provided for @nearbyMedicalPharmaciesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for nearby pharmacies and medicine pickup.'**
+  String get nearbyMedicalPharmaciesSubtitle;
+
+  /// No description provided for @nearbyMedicalClinics.
+  ///
+  /// In en, this message translates to:
+  /// **'Clinics'**
+  String get nearbyMedicalClinics;
+
+  /// No description provided for @nearbyMedicalClinicsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for nearby clinics and medical centers.'**
+  String get nearbyMedicalClinicsSubtitle;
+
+  /// No description provided for @nearbyMedicalCheckingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your location...'**
+  String get nearbyMedicalCheckingLocation;
+
+  /// No description provided for @nearbyMedicalUsingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Using your current location for nearby searches.'**
+  String get nearbyMedicalUsingLocation;
+
+  /// No description provided for @nearbyMedicalLocationFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is unavailable. Searches will still open without your coordinates.'**
+  String get nearbyMedicalLocationFallback;
+
+  /// No description provided for @nearbyMedicalRefreshLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh location'**
+  String get nearbyMedicalRefreshLocation;
+
+  /// No description provided for @nearbyMedicalGoogleMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps'**
+  String get nearbyMedicalGoogleMaps;
+
+  /// No description provided for @nearbyMedicalWaze.
+  ///
+  /// In en, this message translates to:
+  /// **'Waze'**
+  String get nearbyMedicalWaze;
+
+  /// No description provided for @nearbyMedicalNavigationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigation app could not be opened.'**
+  String get nearbyMedicalNavigationFailed;
 
   /// No description provided for @incidentLogTitle.
   ///

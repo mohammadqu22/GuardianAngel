@@ -199,6 +199,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				4E7856B16722FC8FA21125CD /* [CP] Embed Pods Frameworks */,
 				98C7C25B2DC753B0433717AE /* [CP] Copy Pods Resources */,
+				A7D4FBC32DAE45C1A9309E21 /* Sign Flutter Native Assets */,
 			);
 			buildRules = (
 			);
@@ -378,6 +379,21 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		A7D4FBC32DAE45C1A9309E21 /* Sign Flutter Native Assets */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Sign Flutter Native Assets";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\nNATIVE_ASSET_FRAMEWORK=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/objective_c.framework\"\n\nif [ -d \"$NATIVE_ASSET_FRAMEWORK\" ] && [ \"${CODE_SIGNING_ALLOWED}\" != \"NO\" ] && [ -n \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements --timestamp=none \"$NATIVE_ASSET_FRAMEWORK\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

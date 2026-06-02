@@ -51,6 +51,12 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
+  String get homeNearbyMedical => 'עזרה רפואית קרובה';
+
+  @override
+  String get homeNearbyMedicalSubtitle => 'בתי חולים, בתי מרקחת ומרפאות בסביבה';
+
+  @override
   String get emergencyChoking => 'חנק';
 
   @override
@@ -311,6 +317,61 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get locationShareNotAvailable => 'האפליקציה אינה זמינה במכשיר זה';
+
+  @override
+  String get nearbyMedicalTitle => 'עזרה רפואית קרובה';
+
+  @override
+  String get nearbyMedicalSubtitle =>
+      'פתח חיפושים רפואיים קרובים באפליקציית ניווט.';
+
+  @override
+  String get nearbyMedicalEmergencyNotice =>
+      'בכל חירום מסכן חיים, התקשר קודם ל-101.';
+
+  @override
+  String get nearbyMedicalHospitals => 'בתי חולים';
+
+  @override
+  String get nearbyMedicalHospitalsSubtitle =>
+      'חפש חדרי מיון ובתי חולים קרובים.';
+
+  @override
+  String get nearbyMedicalPharmacies => 'בתי מרקחת';
+
+  @override
+  String get nearbyMedicalPharmaciesSubtitle =>
+      'חפש בתי מרקחת קרובים ואיסוף תרופות.';
+
+  @override
+  String get nearbyMedicalClinics => 'מרפאות';
+
+  @override
+  String get nearbyMedicalClinicsSubtitle =>
+      'חפש מרפאות ומרכזים רפואיים קרובים.';
+
+  @override
+  String get nearbyMedicalCheckingLocation => 'בודק את המיקום שלך...';
+
+  @override
+  String get nearbyMedicalUsingLocation =>
+      'משתמש במיקום הנוכחי שלך לחיפושים קרובים.';
+
+  @override
+  String get nearbyMedicalLocationFallback =>
+      'המיקום לא זמין. החיפושים עדיין ייפתחו ללא הקואורדינטות שלך.';
+
+  @override
+  String get nearbyMedicalRefreshLocation => 'רענן מיקום';
+
+  @override
+  String get nearbyMedicalGoogleMaps => 'Google Maps';
+
+  @override
+  String get nearbyMedicalWaze => 'Waze';
+
+  @override
+  String get nearbyMedicalNavigationFailed => 'לא ניתן לפתוח אפליקציית ניווט.';
 
   @override
   String get incidentLogTitle => 'יומן אירועים';

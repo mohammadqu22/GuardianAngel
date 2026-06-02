@@ -51,6 +51,12 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get homeNearbyMedical => 'مساعدة طبية قريبة';
+
+  @override
+  String get homeNearbyMedicalSubtitle => 'مستشفيات وصيدليات وعيادات قريبة';
+
+  @override
   String get emergencyChoking => 'اختناق';
 
   @override
@@ -312,6 +318,61 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get locationShareNotAvailable => 'التطبيق غير متاح على هذا الجهاز';
+
+  @override
+  String get nearbyMedicalTitle => 'مساعدة طبية قريبة';
+
+  @override
+  String get nearbyMedicalSubtitle =>
+      'افتح عمليات بحث طبية قريبة في تطبيق الملاحة.';
+
+  @override
+  String get nearbyMedicalEmergencyNotice =>
+      'في أي حالة طوارئ مهددة للحياة، اتصل أولًا بـ 101.';
+
+  @override
+  String get nearbyMedicalHospitals => 'مستشفيات';
+
+  @override
+  String get nearbyMedicalHospitalsSubtitle =>
+      'ابحث عن غرف طوارئ ومستشفيات قريبة.';
+
+  @override
+  String get nearbyMedicalPharmacies => 'صيدليات';
+
+  @override
+  String get nearbyMedicalPharmaciesSubtitle =>
+      'ابحث عن صيدليات قريبة واستلام الأدوية.';
+
+  @override
+  String get nearbyMedicalClinics => 'عيادات';
+
+  @override
+  String get nearbyMedicalClinicsSubtitle =>
+      'ابحث عن عيادات ومراكز طبية قريبة.';
+
+  @override
+  String get nearbyMedicalCheckingLocation => 'جارٍ فحص موقعك...';
+
+  @override
+  String get nearbyMedicalUsingLocation =>
+      'يتم استخدام موقعك الحالي للبحث القريب.';
+
+  @override
+  String get nearbyMedicalLocationFallback =>
+      'الموقع غير متاح. سيتم فتح البحث بدون إحداثياتك.';
+
+  @override
+  String get nearbyMedicalRefreshLocation => 'تحديث الموقع';
+
+  @override
+  String get nearbyMedicalGoogleMaps => 'Google Maps';
+
+  @override
+  String get nearbyMedicalWaze => 'Waze';
+
+  @override
+  String get nearbyMedicalNavigationFailed => 'تعذر فتح تطبيق الملاحة.';
 
   @override
   String get incidentLogTitle => 'سجل الحوادث';

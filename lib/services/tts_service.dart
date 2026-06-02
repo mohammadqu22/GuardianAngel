@@ -6,25 +6,25 @@ class TtsService {
 
   final AudioPlayer _player = AudioPlayer();
   String? _lastEmergencyId;
-  int?    _lastStepIndex;
+  int? _lastStepIndex;
   String? _lastLangCode;
 
+  static final AudioContext _audioContext = AudioContext(
+    iOS: AudioContextIOS(category: AVAudioSessionCategory.playback),
+    android: AudioContextAndroid(
+      isSpeakerphoneOn: false,
+      stayAwake: false,
+      contentType: AndroidContentType.speech,
+      usageType: AndroidUsageType.assistant,
+      audioFocus: AndroidAudioFocus.gain,
+    ),
+  );
+
   Future<void> init() async {
-    await AudioPlayer.global.setAudioContext(
-      AudioContext(
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.playback,
-          options: {AVAudioSessionOptions.defaultToSpeaker},
-        ),
-        android: AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: false,
-          contentType: AndroidContentType.speech,
-          usageType: AndroidUsageType.assistant,
-          audioFocus: AndroidAudioFocus.gain,
-        ),
-      ),
-    );
+    // Configure the playback audio session. Note: on iOS the audio context is
+    // global (per-player contexts are ignored), so this applies app-wide.
+    await AudioPlayer.global.setAudioContext(_audioContext);
+    await _player.setVolume(1.0);
   }
 
   Future<void> speak(
@@ -33,16 +33,18 @@ class TtsService {
     String languageCode,
   ) async {
     _lastEmergencyId = emergencyId;
-    _lastStepIndex   = stepIndex;
-    _lastLangCode    = languageCode;
+    _lastStepIndex = stepIndex;
+    _lastLangCode = languageCode;
 
     final lang = _langFolder(languageCode);
     final path = 'audio/$lang/$emergencyId/step_$stepIndex.wav';
     try {
-      
-        await _player.stop();
-      
-      await _player.play(AssetSource(path));
+      // Re-apply the audio session before playing. This restores playback
+      // after the session may have been deactivated by an interruption such
+      // as dialing 101 mid-protocol or handing off to a maps app.
+      await AudioPlayer.global.setAudioContext(_audioContext);
+      await _player.stop();
+      await _player.play(AssetSource(path), volume: 1.0);
     } catch (_) {
       // Asset missing or playback failure — fail silently.
     }
@@ -54,17 +56,20 @@ class TtsService {
 
   Future<void> repeat() async {
     if (_lastEmergencyId != null &&
-        _lastStepIndex   != null &&
-        _lastLangCode    != null) {
+        _lastStepIndex != null &&
+        _lastLangCode != null) {
       await speak(_lastEmergencyId!, _lastStepIndex!, _lastLangCode!);
     }
   }
 
   static String _langFolder(String languageCode) {
     switch (languageCode) {
-      case 'ar-SA': return 'ar';
-      case 'he-IL': return 'he';
-      default:      return 'en';
+      case 'ar-SA':
+        return 'ar';
+      case 'he-IL':
+        return 'he';
+      default:
+        return 'en';
     }
   }
 }

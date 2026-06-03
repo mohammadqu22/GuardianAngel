@@ -227,7 +227,62 @@ class _StepScreenState extends State<StepScreen> {
       _speakCurrentStep();
     }
   }
-
+  void _resetProtocol() {
+  showDialog(
+    context: context,
+    builder: (context) {
+      final cs = Theme.of(context).colorScheme;
+      return AlertDialog(
+        backgroundColor: cs.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.restart_alt, color: widget.emergencyColor),
+            const SizedBox(width: 10),
+            const Text('Restart Protocol'),
+          ],
+        ),
+        content: const Text(
+          'This will restart the guide from Step 1. Are you sure?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _recordCurrentStepDuration();
+              setState(() {
+                _currentStep = 0;
+                _maxVisitedStep = 1;
+                _sessionStartedAt = DateTime.now();
+                _sessionEndedAt = null;
+                _stepStartedAt = DateTime.now();
+                _stepDurations = List<int>.filled(_steps.length, 0);
+                _completed = false;
+              });
+              _cardScrollController.jumpTo(0);
+              _checkScrollable();
+              _updateIncidentProgress(includeTiming: true);
+              _speakCurrentStep();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: widget.emergencyColor,
+            ),
+            child: const Text(
+              'Restart',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
   void _speakCurrentStep() {
     if (_ttsEnabled) {
       final step = _steps[_currentStep];
@@ -341,6 +396,12 @@ class _StepScreenState extends State<StepScreen> {
         elevation: 0,
         centerTitle: false,
         actions: [
+  if (!_loading && !_completed && _steps.isNotEmpty)
+    IconButton(
+      icon: const Icon(Icons.restart_alt),
+      tooltip: 'Restart Protocol',
+      onPressed: _resetProtocol,
+    ),
           IconButton(
             icon: const Icon(Icons.location_on_outlined),
             tooltip: l10n.settingsShareLocation,

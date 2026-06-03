@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
@@ -10,6 +9,7 @@ import 'settings_screen.dart';
 import '../core/app_theme.dart';
 import '../services/database_service.dart';
 import '../services/phone_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -33,18 +33,20 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   Locale? _lastLocale;
 
+  // Scroll-affordance fades for the emergency grid: the bottom fade hints that
+  // more protocols lie below, the top fade appears once the user scrolls down.
   bool _gridScrolledFromTop = false;
   bool _gridAtBottom = false;
 
+  // Voice-search state.
   bool _speechReady = false;
   bool _speechInitializing = false;
   bool _isListening = false;
   List<LocaleName> _speechLocales = const [];
 
-  // ── Auto-prompt state ──
   Timer? _autoPromptTimer;
   bool _autoPromptVisible = false;
-
+  /// Built inside build() so titles are always in the active locale.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
     {
       'id': 'choking',
@@ -97,28 +99,29 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final locale = Localizations.localeOf(context);
-    if (_lastLocale != null && _lastLocale != locale) {
-      _searchController.clear();
-      _searchQuery = '';
-      _resetGridScroll();
-      if (_isListening) {
-        _speech.stop();
-        _isListening = false;
-      }
-      _cancelAutoPrompt();
+  
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  final locale = Localizations.localeOf(context);
+  if (_lastLocale != null && _lastLocale != locale) {
+    _searchController.clear();
+    _searchQuery = '';
+    _resetGridScroll();
+    if (_isListening) {
+      _speech.stop();
+      _isListening = false;
     }
-    // Start the timer only on the very first load
-    if (_lastLocale == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final l10n = AppLocalizations.of(context);
-        if (l10n != null) _startAutoPromptTimer(l10n);
-      });
-    }
-    _lastLocale = locale;
+    _cancelAutoPrompt();
   }
+  // Start the timer only on the very first load
+  if (_lastLocale == null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) _startAutoPromptTimer(l10n);
+    });
+  }
+  _lastLocale = locale;
+}
 
   @override
   void dispose() {
@@ -128,36 +131,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
-  // ── Auto-prompt methods ──
-
   void _startAutoPromptTimer(AppLocalizations l10n) {
-    _autoPromptTimer?.cancel();
-    _autoPromptTimer = Timer(const Duration(seconds: 7), () async {
-      if (!mounted || _isListening || _searchQuery.isNotEmpty) return;
-      setState(() => _autoPromptVisible = true);
-      await _toggleDictation(l10n);
-    });
+  _autoPromptTimer?.cancel();
+  _autoPromptTimer = Timer(const Duration(seconds: 7), () async {
+    if (!mounted || _isListening || _searchQuery.isNotEmpty) return;
+    setState(() => _autoPromptVisible = true);
+    await _toggleDictation(l10n);
+  });
+}
+
+void _cancelAutoPrompt() {
+  _autoPromptTimer?.cancel();
+  _autoPromptTimer = null;
+  if (_autoPromptVisible) {
+    setState(() => _autoPromptVisible = false);
   }
+}
 
-  void _cancelAutoPrompt() {
-    _autoPromptTimer?.cancel();
-    _autoPromptTimer = null;
-    if (_autoPromptVisible) {
-      setState(() => _autoPromptVisible = false);
-    }
-  }
-
-  // ── Search & normalization ──
-
+  /// Normalizes text for locale-tolerant search matching. Speech recognition
+  /// (especially Arabic/Hebrew) can add vowel diacritics, tatweel, or
+  /// bidirectional control characters and use different letter forms, so the
+  /// raw dictated string may not literally equal the stored title. Stripping
+  /// those and unifying common letter variants lets matches succeed.
   static String _normalizeForSearch(String input) {
     final buffer = StringBuffer();
     for (var ch in input.runes) {
+      // Arabic diacritics (tashkeel) and Hebrew niqqud / cantillation marks.
       if ((ch >= 0x0610 && ch <= 0x061A) ||
           (ch >= 0x064B && ch <= 0x065F) ||
           ch == 0x0670 ||
           (ch >= 0x06D6 && ch <= 0x06ED) ||
-          ch == 0x0640 ||
+          ch == 0x0640 || // Arabic tatweel
           (ch >= 0x0591 && ch <= 0x05BD) ||
           ch == 0x05BF ||
           ch == 0x05C1 ||
@@ -167,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ch == 0x05C7) {
         continue;
       }
+      // Bidirectional control characters.
       if (ch == 0x200E ||
           ch == 0x200F ||
           ch == 0x061C ||
@@ -174,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
           (ch >= 0x2066 && ch <= 0x2069)) {
         continue;
       }
+      // Unify Arabic alef variants (آ أ إ → ا) and alef-maqsura (ى → ي).
       if (ch == 0x0622 || ch == 0x0623 || ch == 0x0625) ch = 0x0627;
       if (ch == 0x0649) ch = 0x064A;
       buffer.writeCharCode(ch);
@@ -200,8 +206,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _gridController.jumpTo(0);
   }
 
-  // ── Speech ──
-
+  /// Lazily initializes the speech engine the first time the mic is tapped.
+  /// Returns whether recognition is usable. Permission prompts and missing
+  /// engines are reported via a snackbar so typing always stays available.
   Future<bool> _ensureSpeechReady(AppLocalizations l10n) async {
     if (_speechReady) return true;
     if (_speechInitializing) return false;
@@ -257,7 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onSpeechResult(SpeechRecognitionResult result) {
     final words = result.recognizedWords.trim();
     if (words.isEmpty) return;
-    _cancelAutoPrompt();
     _searchController.value = TextEditingValue(
       text: words,
       selection: TextSelection.collapsed(offset: words.length),
@@ -281,6 +287,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (error.permanent) _showSnackBar(l10n.homeDictationUnavailable);
   }
 
+  /// Maps the active app locale to the closest available recognizer locale,
+  /// falling back to a sensible default code when none is installed.
   String? _localeIdFor(Locale locale) {
     final preferred = switch (locale.languageCode) {
       'he' => const ['he_IL', 'he-IL', 'he'],
@@ -300,21 +308,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
-
-  // ── Navigation ──
 
   Future<void> _openEmergency({
     required String id,
     required String title,
     required Color color,
   }) async {
-    _cancelAutoPrompt();
     int? incidentLogId;
     try {
       incidentLogId = await DatabaseService.logIncident(id);
-    } catch (_) {}
+    } catch (_) {
+      // Logging is helpful, but the emergency flow must always remain available.
+    }
 
     if (!mounted) return;
     Navigator.push(
@@ -331,14 +340,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openNearbyMedicalHelp() {
-    _cancelAutoPrompt();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const NearbyMedicalScreen()),
     );
   }
-
-  // ── Build ──
 
   @override
   Widget build(BuildContext context) {
@@ -351,10 +357,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final filteredEmergencies = query.isEmpty
         ? allEmergencies
         : allEmergencies
-            .where(
-              (e) => _normalizeForSearch(e['title'] as String).contains(query),
-            )
-            .toList();
+              .where(
+                (e) =>
+                    _normalizeForSearch(e['title'] as String).contains(query),
+              )
+              .toList();
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -382,12 +389,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
+                    // Settings icon
                     Align(
                       alignment: AlignmentDirectional.topEnd,
                       child: IconButton(
                         tooltip: l10n.homeSettingsTooltip,
                         onPressed: () {
-                          _cancelAutoPrompt();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -421,20 +428,17 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(l10n.homeSelectEmergency, style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
 
-              // ── Auto-prompt banner ──
+              // ── Auto prompt banner ──
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: _autoPromptVisible
                     ? GestureDetector(
-                        key: const ValueKey('prompt'),
                         onTap: _cancelAutoPrompt,
                         child: Container(
+                          key: const ValueKey('prompt'),
                           width: double.infinity,
                           margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: cs.primaryContainer.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -448,7 +452,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'What is your emergency? Tap to dismiss.',
+                                  l10n.homeAutoPrompt,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: cs.primary,
                                     fontWeight: FontWeight.w600,
@@ -467,7 +471,6 @@ class _HomeScreenState extends State<HomeScreen> {
               TextField(
                 controller: _searchController,
                 onChanged: _setSearchQuery,
-                onTap: _cancelAutoPrompt,
                 decoration: InputDecoration(
                   hintText: l10n.homeSearchHint,
                   prefixIcon: Icon(Icons.search, color: cs.outline),
@@ -491,10 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             : l10n.homeDictationStartTooltip,
                         onPressed: _speechInitializing
                             ? null
-                            : () {
-                                _cancelAutoPrompt();
-                                _toggleDictation(l10n);
-                              },
+                            : () => _toggleDictation(l10n),
                         icon: Icon(
                           _isListening ? Icons.mic : Icons.mic_none,
                           color: _isListening ? cs.primary : cs.outline,
@@ -529,13 +529,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     : LayoutBuilder(
                         builder: (context, constraints) {
                           const spacing = 16.0;
+                          // When there are more than four protocols, shrink the
+                          // cards enough that the next row peeks from below. That
+                          // gives a clear cue that more protocols are available.
                           const peek = 44.0;
                           final hasOverflow = filteredEmergencies.length > 4;
                           final available =
                               constraints.maxHeight -
                               spacing -
                               (hasOverflow ? spacing + peek : 0);
-                          final cardHeight = available > 160 ? available / 2 : 80;
+                          final cardHeight = available > 160
+                              ? available / 2
+                              : 80;
                           final showBottomFade = hasOverflow && !_gridAtBottom;
 
                           return NotificationListener<ScrollNotification>(
@@ -595,6 +600,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Keeps the edge fades in sync with the scroll position: the top fade shows
+  /// once scrolled away from the top, the bottom fade hides at the very end.
   bool _onGridScroll(ScrollNotification notification) {
     final m = notification.metrics;
     final fromTop = m.pixels > 8;
@@ -608,6 +615,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return false;
   }
 
+  /// A soft gradient that dissolves the grid edge into the background, signalling
+  /// that content continues past the visible area. Theme-aware via [color].
   Widget _buildScrollFade({
     required bool top,
     required bool visible,
@@ -775,8 +784,12 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppRadius.lg),
+          // Accent-tinted edge ties each card to its emergency colour while
+          // staying legible on both light and dark surfaces.
           border: Border.all(color: color.withValues(alpha: 0.45), width: 1.5),
         ),
+        // FittedBox keeps the card content from overflowing when the grid is
+        // squeezed into a short space (small screens / compact test windows).
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: FittedBox(

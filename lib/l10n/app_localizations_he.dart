@@ -578,4 +578,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get disclaimerContinueBtn => 'הבנתי — המשך';
+
+  @override
+  String get homeAutoPrompt => 'מה מצב החירום שלך? הקש לביטול.';
 }

@@ -588,4 +588,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get disclaimerContinueBtn => 'I UNDERSTAND — CONTINUE';
+
+  @override
+  String get homeAutoPrompt => 'What is your emergency? Tap to dismiss.';
 }

@@ -1137,6 +1137,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I UNDERSTAND — CONTINUE'**
   String get disclaimerContinueBtn;
+
+  /// No description provided for @homeAutoPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'What is your emergency? Tap to dismiss.'**
+  String get homeAutoPrompt;
 }
 
 class _AppLocalizationsDelegate

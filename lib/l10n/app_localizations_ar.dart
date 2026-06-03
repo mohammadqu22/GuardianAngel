@@ -585,4 +585,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get disclaimerContinueBtn => 'أفهم — متابعة';
+
+  @override
+  String get homeAutoPrompt => 'ما هي حالتك الطارئة؟ اضغط للإلغاء.';
 }

@@ -237,5 +237,7 @@
   "disclaimerSource4": "نجمة داوود الحمراء — بروتوكولات الطوارئ الإسرائيلية",
   "disclaimerAcknowledge": "بالمتابعة، تُقر بأن هذه الإرشادات لا تُعوِّض عن خدمات الطوارئ الطبية وأنك ستتصل بـ 101 في الحالات الطبية الخطيرة.",
   "disclaimerVersion": "Guardian Angel v1.0.0 • واجهة Clinical Sentinel",
-  "disclaimerContinueBtn": "أفهم — متابعة"
+  "disclaimerContinueBtn": "أفهم — متابعة",
+
+  "homeAutoPrompt": "ما هي حالتك الطارئة؟ اضغط للإلغاء."
 }

@@ -183,5 +183,7 @@
   "disclaimerSource4": "מגן דוד אדום — פרוטוקולי חירום ישראליים",
   "disclaimerAcknowledge": "בהמשך, אתה מאשר שהנחיה זו אינה מחליפה שירותי חירום רפואיים ושתתקשר ל-101 במצבים רפואיים חמורים.",
   "disclaimerVersion": "Guardian Angel v1.0.0 • ממשק Clinical Sentinel",
-  "disclaimerContinueBtn": "הבנתי — המשך"
+  "disclaimerContinueBtn": "הבנתי — המשך",
+
+  "homeAutoPrompt": "מה מצב החירום שלך? הקש לביטול."
 }

@@ -52,3 +52,5 @@ macos/
 
 # Web (not a target platform)
 web/
+
+secrets.json

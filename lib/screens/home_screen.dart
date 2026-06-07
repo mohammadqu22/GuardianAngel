@@ -10,6 +10,7 @@ import '../core/app_theme.dart';
 import '../services/database_service.dart';
 import '../services/phone_service.dart';
 import 'dart:async';
+import '../services/ai_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -44,8 +45,18 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isListening = false;
   List<LocaleName> _speechLocales = const [];
 
-  Timer? _autoPromptTimer;
-  bool _autoPromptVisible = false;
+    Timer? _autoPromptTimer;
+    bool _autoPromptVisible = false;
+    // ── AI detection state ──
+    Timer? _aiDebounceTimer;
+    String? _aiSuggestedId;
+    String? _aiSuggestedTitle;
+    Color? _aiSuggestedColor;
+    bool _aiLoading = false;
+
+
+
+  
   /// Built inside build() so titles are always in the active locale.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
     {
@@ -126,6 +137,7 @@ void didChangeDependencies() {
   @override
   void dispose() {
     _autoPromptTimer?.cancel();
+    _aiDebounceTimer?.cancel();
     _speech.cancel();
     _gridController.dispose();
     _searchController.dispose();
@@ -147,6 +159,56 @@ void _cancelAutoPrompt() {
     setState(() => _autoPromptVisible = false);
   }
 }
+ void _runAiDetection(String query, AppLocalizations l10n) {
+  _aiDebounceTimer?.cancel();
+  if (query.trim().length < 4) {
+    if (_aiSuggestedId != null || _aiLoading) {
+      setState(() {
+        _aiSuggestedId = null;
+        _aiSuggestedTitle = null;
+        _aiSuggestedColor = null;
+        _aiLoading = false;
+      });
+    }
+    return;
+  }
+
+     setState(() => _aiLoading = true);
+
+    _aiDebounceTimer = Timer(const Duration(milliseconds: 1500), () async {
+    if (!mounted) return;
+    final allEmergencies = _buildEmergencyList(l10n);
+    final id = await AiService.detectEmergency(query);
+    if (!mounted) return;
+    if (id == null) {
+      setState(() {
+        _aiSuggestedId = null;
+        _aiSuggestedTitle = null;
+        _aiSuggestedColor = null;
+        _aiLoading = false;
+      });
+      return;
+    }
+    final match = allEmergencies.firstWhere(
+      (e) => e['id'] == id,
+      orElse: () => {},
+    );
+    if (match.isEmpty) {
+      setState(() {
+        _aiSuggestedId = null;
+        _aiLoading = false;
+      });
+      return;
+    }
+    setState(() {
+      _aiSuggestedId = id;
+      _aiSuggestedTitle = match['title'] as String;
+      _aiSuggestedColor = match['color'] as Color;
+      _aiLoading = false;
+    });
+  });
+}
+
 
   /// Normalizes text for locale-tolerant search matching. Speech recognition
   /// (especially Arabic/Hebrew) can add vowel diacritics, tatweel, or
@@ -197,6 +259,7 @@ void _cancelAutoPrompt() {
       _searchQuery = value;
       _resetGridScroll();
     });
+    _runAiDetection(value, AppLocalizations.of(context)!);
   }
 
   void _resetGridScroll() {
@@ -504,6 +567,71 @@ void _cancelAutoPrompt() {
                   ),
                 ),
               ),
+
+              // ── AI suggestion banner ──
+              if (_aiLoading)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'AI is analyzing...',
+                        style: theme.textTheme.bodySmall?.copyWith(color: cs.outline),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_aiSuggestedId != null && !_aiLoading)
+                GestureDetector(
+                  onTap: () {
+                    _openEmergency(
+                      id: _aiSuggestedId!,
+                      title: _aiSuggestedTitle!,
+                      color: _aiSuggestedColor!,
+                    );
+                    setState(() {
+                      _aiSuggestedId = null;
+                      _aiSuggestedTitle = null;
+                      _aiSuggestedColor = null;
+                    });
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _aiSuggestedColor!.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(
+                        color: _aiSuggestedColor!.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: _aiSuggestedColor, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'AI detected: $_aiSuggestedTitle — tap to open',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: _aiSuggestedColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, color: _aiSuggestedColor, size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+
+
               const SizedBox(height: 14),
               _buildNearbyMedicalButton(context),
               const SizedBox(height: 18),

@@ -11,6 +11,10 @@ import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/tts_service.dart';
+import 'dart:async';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class StepScreen extends StatefulWidget {
   final String emergencyId;
@@ -48,6 +52,11 @@ class _StepScreenState extends State<StepScreen> {
   DateTime? _stepStartedAt;
   List<int> _stepDurations = [];
   bool _locationSharing = false; // guard against double-tap on location button
+  // ── Hands-free state ──
+  final SpeechToText _handsFree = SpeechToText();
+  bool _handsFreeEnabled = false;
+  bool _handsFreeListening = false;
+  bool _handsFreeReady = false;
 
   void _checkScrollable() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -182,7 +191,7 @@ class _StepScreenState extends State<StepScreen> {
     }
   }
 
-  void _nextStep() {
+  Future<void> _nextStep() async {
     if (_currentStep < _steps.length - 1) {
       _recordCurrentStepDuration();
       setState(() {
@@ -211,6 +220,8 @@ class _StepScreenState extends State<StepScreen> {
         markEnded: true,
       );
       if (_ttsEnabled) TtsService.instance.stop();
+      await _stopHandsFreeListening();
+      setState(() => _handsFreeEnabled = false);
     }
   }
 
@@ -264,7 +275,11 @@ class _StepScreenState extends State<StepScreen> {
                 _stepStartedAt = DateTime.now();
                 _stepDurations = List<int>.filled(_steps.length, 0);
                 _completed = false;
+                _handsFreeEnabled = false;
+                _handsFreeListening = false;
+
               });
+              _handsFree.cancel();
               _cardScrollController.jumpTo(0);
               _checkScrollable();
               _updateIncidentProgress(includeTiming: true);
@@ -282,6 +297,76 @@ class _StepScreenState extends State<StepScreen> {
       );
     },
   );
+}
+
+  Future<void> _toggleHandsFree() async {
+  if (_handsFreeEnabled) {
+    await _stopHandsFreeListening();
+    setState(() => _handsFreeEnabled = false);
+  } else {
+    setState(() => _handsFreeEnabled = true);
+    await _startHandsFreeListening();
+  }
+}
+
+Future<void> _startHandsFreeListening() async {
+  if (_handsFreeListening || _completed) return;
+  if (!_handsFreeReady) {
+    final available = await _handsFree.initialize(
+      onError: (error) {
+        if (!mounted) return;
+        if (error.permanent) setState(() => _handsFreeReady = false);
+        // restart listening after transient errors
+        if (_handsFreeEnabled && !error.permanent) {
+          Future.delayed(const Duration(seconds: 1), _startHandsFreeListening);
+        }
+      },
+    );
+    if (!mounted) return;
+    _handsFreeReady = available;
+    if (!available) {
+      setState(() => _handsFreeEnabled = false);
+      return;
+    }
+  }
+
+  final localeCode = _loadedLocale ?? 'en';
+  final localeId = switch (localeCode) {
+    'he' => 'he_IL',
+    'ar' => 'ar_SA',
+    _    => 'en_US',
+  };
+
+  await _handsFree.listen(
+    onResult: _onHandsFreeResult,
+    listenOptions: SpeechListenOptions(
+      cancelOnError: false,
+      partialResults: true,
+      listenMode: ListenMode.dictation,
+      localeId: localeId,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+    ),
+  );
+  if (mounted) setState(() => _handsFreeListening = true);
+}
+
+Future<void> _stopHandsFreeListening() async {
+  await _handsFree.stop();
+  if (mounted) setState(() => _handsFreeListening = false);
+}
+
+void _onHandsFreeResult(SpeechRecognitionResult result) {
+  if (!result.finalResult) return;
+  final words = result.recognizedWords.toLowerCase().trim();
+  final nextWords = ['next', 'הבא', 'التالي'];
+  if (nextWords.any((w) => words.contains(w))) {
+    _nextStep();
+  }
+  // restart listening after each final result
+  if (_handsFreeEnabled && !_completed) {
+    Future.delayed(const Duration(milliseconds: 500), _startHandsFreeListening);
+  }
 }
   void _speakCurrentStep() {
     if (_ttsEnabled) {
@@ -371,80 +456,90 @@ class _StepScreenState extends State<StepScreen> {
         markEnded: true,
       );
     }
+    _handsFree.cancel();
     _cardScrollController.dispose();
     TtsService.instance.stop();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+Widget build(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
+  final cs = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: Text(
-          widget.emergencyTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+  return Scaffold(
+    backgroundColor: cs.surface,
+    appBar: AppBar(
+      title: Text(
+        widget.emergencyTitle,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
         ),
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-  if (!_loading && !_completed && _steps.isNotEmpty)
-    IconButton(
-      icon: const Icon(Icons.restart_alt),
-      tooltip: 'Restart Protocol',
-      onPressed: _resetProtocol,
-    ),
-          IconButton(
-            icon: const Icon(Icons.location_on_outlined),
-            tooltip: l10n.settingsShareLocation,
-            // Fix #9: null disables the button while a share is in progress,
-            // preventing double-tap from opening two GPS dialogs.
-            onPressed: _locationSharing
-                ? null
-                : () async {
-                    setState(() => _locationSharing = true);
-                    try {
-                      await ShareLocationSheet.show(
-                        context,
-                        accentColor: widget.emergencyColor,
-                      );
-                    } finally {
-                      if (mounted) setState(() => _locationSharing = false);
-                    }
-                  },
-          ),
-        ],
       ),
-      body: _loading
-          ? Center(
-              child: CircularProgressIndicator(color: widget.emergencyColor),
-            )
-          : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  _errorMessage!,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  textAlign: TextAlign.center,
+      backgroundColor: cs.surface,
+      foregroundColor: cs.onSurface,
+      elevation: 0,
+      centerTitle: false,
+      actions: [
+        if (!_loading && !_completed && _steps.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            tooltip: 'Restart Protocol',
+            onPressed: _resetProtocol,
+          ),
+        if (!_loading && !_completed && _steps.isNotEmpty)
+          IconButton(
+            icon: Icon(
+              _handsFreeEnabled ? Icons.hearing : Icons.hearing_disabled,
+              color: _handsFreeEnabled ? widget.emergencyColor : null,
+            ),
+            tooltip: _handsFreeEnabled ? 'Hands-free ON' : 'Hands-free OFF',
+            onPressed: _toggleHandsFree,
+          ),
+        IconButton(
+          icon: const Icon(Icons.location_on_outlined),
+          tooltip: l10n.settingsShareLocation,
+          // Fix #9: null disables the button while a share is in progress,
+          // preventing double-tap from opening two GPS dialogs.
+          onPressed: _locationSharing
+              ? null
+              : () async {
+                  setState(() => _locationSharing = true);
+                  try {
+                    await ShareLocationSheet.show(
+                      context,
+                      accentColor: widget.emergencyColor,
+                    );
+                  } finally {
+                    if (mounted) setState(() => _locationSharing = false);
+                  }
+                },
+        ),
+      ],
+    ),
+    body: _loading
+        ? Center(
+            child: CircularProgressIndicator(color: widget.emergencyColor),
+          )
+        : _errorMessage != null
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                _errorMessage!,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
                 ),
+                textAlign: TextAlign.center,
               ),
-            )
-          : _completed
-          ? _buildCompletedScreen(l10n)
-          : _buildStepScreen(l10n),
-    );
-  }
+            ),
+          )
+        : _completed
+        ? _buildCompletedScreen(l10n)
+        : _buildStepScreen(l10n),
+  );
+}
 
   Widget _buildStepScreen(AppLocalizations l10n) {
     final step = _steps[_currentStep];
@@ -490,6 +585,45 @@ class _StepScreenState extends State<StepScreen> {
             ),
           ),
           const SizedBox(height: 32),
+          // ── Hands-free banner ──
+          if (_handsFreeEnabled) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: widget.emergencyColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: widget.emergencyColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.mic, color: widget.emergencyColor, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Hands-free active — say "Next"',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: widget.emergencyColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_handsFreeListening)
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: widget.emergencyColor,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+
 
           // ── Step card ──
           Expanded(

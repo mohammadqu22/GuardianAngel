@@ -359,10 +359,36 @@ Future<void> _stopHandsFreeListening() async {
 void _onHandsFreeResult(SpeechRecognitionResult result) {
   if (!result.finalResult) return;
   final words = result.recognizedWords.toLowerCase().trim();
-  final nextWords = ['next', 'הבא', 'التالي'];
+
+  // ── Next words (English + typos + Hebrew + Arabic) ──
+  final nextWords = [
+    // English
+    'next', 'nex', 'nets', 'neck', 'text',
+    'continue', 'move on', 'go ahead', 'forward', 'go forward',
+    'proceed', 'okay', 'ok', 'done', 'yes',
+    // Hebrew
+    'הבא', 'המשך', 'קדימה', 'כן',
+    // Arabic
+    'التالي', 'استمر', 'للأمام', 'تالي', 'يلا', 'امشي',
+  ];
+
+  // ── Previous words (English + Hebrew + Arabic) ──
+  final previousWords = [
+    // English
+    'previous', 'prev', 'back', 'go back', 'before',
+    'last', 'return', 'undo',
+    // Hebrew
+    'הקודם', 'אחורה', 'חזור',
+    // Arabic
+    'السابق', 'ارجع', 'للخلف', 'رجع', 'سابق',
+  ];
+
   if (nextWords.any((w) => words.contains(w))) {
     _nextStep();
+  } else if (previousWords.any((w) => words.contains(w))) {
+    _previousStep();
   }
+
   // restart listening after each final result
   if (_handsFreeEnabled && !_completed) {
     Future.delayed(const Duration(milliseconds: 500), _startHandsFreeListening);
@@ -603,7 +629,7 @@ Widget build(BuildContext context) {
                   Icon(Icons.mic, color: widget.emergencyColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Hands-free active — say "Next"',
+                    'Hands-free active — say "Next" or "Back"',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: widget.emergencyColor,
                       fontWeight: FontWeight.w600,

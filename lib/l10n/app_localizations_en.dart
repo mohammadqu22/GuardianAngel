@@ -590,5 +590,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get disclaimerContinueBtn => 'I UNDERSTAND — CONTINUE';
 
   @override
+  String get homeAiAnalyzing => 'AI is analyzing...';
+
+  @override
+  String homeAiDetected(String title) {
+    return 'AI detected: $title — tap to open';
+  }
+
+  @override
+  String get stepRestartTitle => 'Restart Protocol';
+
+  @override
+  String get stepRestartBody =>
+      'This will restart the guide from Step 1. Are you sure?';
+
+  @override
+  String get stepRestartConfirm => 'Restart';
+
+  @override
+  String get stepHandsFreeBanner =>
+      'Hands-free active — say \"Next\" or \"Back\"';
+
+  @override
+  String get stepHandsFreeOn => 'Hands-free ON';
+
+  @override
+  String get stepHandsFreeOff => 'Hands-free OFF';
+
+  @override
   String get homeAutoPrompt => 'What is your emergency? Tap to dismiss.';
 }

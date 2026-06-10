@@ -159,56 +159,58 @@ void _cancelAutoPrompt() {
     setState(() => _autoPromptVisible = false);
   }
 }
- void _runAiDetection(String query, AppLocalizations l10n) {
-  _aiDebounceTimer?.cancel();
-  if (query.trim().length < 4) {
-    if (_aiSuggestedId != null || _aiLoading) {
-      setState(() {
-        _aiSuggestedId = null;
-        _aiSuggestedTitle = null;
-        _aiSuggestedColor = null;
-        _aiLoading = false;
-      });
+ 
+  void _runAiDetection(String query, AppLocalizations l10n) {
+    _aiDebounceTimer?.cancel();
+    if (query.trim().length < 4) {
+      if (_aiSuggestedId != null || _aiLoading) {
+        setState(() {
+          _aiSuggestedId = null;
+          _aiSuggestedTitle = null;
+          _aiSuggestedColor = null;
+          _aiLoading = false;
+        });
+      }
+      return;
     }
-    return;
-  }
 
-     setState(() => _aiLoading = true);
+    setState(() => _aiLoading = true);
 
+    // fix: save query snapshot to guard against race conditions
+    final requestQuery = query;
     _aiDebounceTimer = Timer(const Duration(milliseconds: 1500), () async {
-    if (!mounted) return;
-    final allEmergencies = _buildEmergencyList(l10n);
-    final id = await AiService.detectEmergency(query);
-    if (!mounted) return;
-    if (id == null) {
+      if (!mounted || requestQuery != _searchQuery) return;
+      final allEmergencies = _buildEmergencyList(l10n);
+      final id = await AiService.detectEmergency(requestQuery);
+      if (!mounted || requestQuery != _searchQuery) return;
+      if (id == null) {
+        setState(() {
+          _aiSuggestedId = null;
+          _aiSuggestedTitle = null;
+          _aiSuggestedColor = null;
+          _aiLoading = false;
+        });
+        return;
+      }
+      final match = allEmergencies.firstWhere(
+        (e) => e['id'] == id,
+        orElse: () => {},
+      );
+      if (match.isEmpty) {
+        setState(() {
+          _aiSuggestedId = null;
+          _aiLoading = false;
+        });
+        return;
+      }
       setState(() {
-        _aiSuggestedId = null;
-        _aiSuggestedTitle = null;
-        _aiSuggestedColor = null;
+        _aiSuggestedId = id;
+        _aiSuggestedTitle = match['title'] as String;
+        _aiSuggestedColor = match['color'] as Color;
         _aiLoading = false;
       });
-      return;
-    }
-    final match = allEmergencies.firstWhere(
-      (e) => e['id'] == id,
-      orElse: () => {},
-    );
-    if (match.isEmpty) {
-      setState(() {
-        _aiSuggestedId = null;
-        _aiLoading = false;
-      });
-      return;
-    }
-    setState(() {
-      _aiSuggestedId = id;
-      _aiSuggestedTitle = match['title'] as String;
-      _aiSuggestedColor = match['color'] as Color;
-      _aiLoading = false;
     });
-  });
-}
-
+  }
 
   /// Normalizes text for locale-tolerant search matching. Speech recognition
   /// (especially Arabic/Hebrew) can add vowel diacritics, tatweel, or
@@ -581,7 +583,7 @@ void _cancelAutoPrompt() {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        'AI is analyzing...',
+                        l10n.homeAiAnalyzing,
                         style: theme.textTheme.bodySmall?.copyWith(color: cs.outline),
                       ),
                     ],
@@ -618,7 +620,7 @@ void _cancelAutoPrompt() {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'AI detected: $_aiSuggestedTitle — tap to open',
+                            l10n.homeAiDetected(_aiSuggestedTitle!),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: _aiSuggestedColor,
                               fontWeight: FontWeight.w600,

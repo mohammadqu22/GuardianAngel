@@ -1138,6 +1138,54 @@ abstract class AppLocalizations {
   /// **'I UNDERSTAND — CONTINUE'**
   String get disclaimerContinueBtn;
 
+  /// No description provided for @homeAiAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is analyzing...'**
+  String get homeAiAnalyzing;
+
+  /// No description provided for @homeAiDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'AI detected: {title} — tap to open'**
+  String homeAiDetected(String title);
+
+  /// No description provided for @stepRestartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart Protocol'**
+  String get stepRestartTitle;
+
+  /// No description provided for @stepRestartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will restart the guide from Step 1. Are you sure?'**
+  String get stepRestartBody;
+
+  /// No description provided for @stepRestartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get stepRestartConfirm;
+
+  /// No description provided for @stepHandsFreeBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free active — say \"Next\" or \"Back\"'**
+  String get stepHandsFreeBanner;
+
+  /// No description provided for @stepHandsFreeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free ON'**
+  String get stepHandsFreeOn;
+
+  /// No description provided for @stepHandsFreeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free OFF'**
+  String get stepHandsFreeOff;
+
   /// No description provided for @homeAutoPrompt.
   ///
   /// In en, this message translates to:

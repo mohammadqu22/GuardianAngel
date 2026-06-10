@@ -238,6 +238,18 @@
   "disclaimerAcknowledge": "بالمتابعة، تُقر بأن هذه الإرشادات لا تُعوِّض عن خدمات الطوارئ الطبية وأنك ستتصل بـ 101 في الحالات الطبية الخطيرة.",
   "disclaimerVersion": "Guardian Angel v1.0.0 • واجهة Clinical Sentinel",
   "disclaimerContinueBtn": "أفهم — متابعة",
-
+  "homeAiAnalyzing": "الذكاء الاصطناعي يحلل...",
+  "homeAiDetected": "اكتشف الذكاء الاصطناعي: {title} — اضغط للفتح",
+  "@homeAiDetected": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "stepRestartTitle": "إعادة تشغيل البروتوكول",
+  "stepRestartBody": "سيؤدي هذا إلى إعادة تشغيل الدليل من الخطوة 1. هل أنت متأكد؟",
+  "stepRestartConfirm": "إعادة تشغيل",
+  "stepHandsFreeBanner": "الوضع الحر نشط — قل \"التالي\" أو \"السابق\"",
+  "stepHandsFreeOn": "الوضع الحر مفعّل",
+  "stepHandsFreeOff": "الوضع الحر معطّل",
   "homeAutoPrompt": "ما هي حالتك الطارئة؟ اضغط للإلغاء."
 }

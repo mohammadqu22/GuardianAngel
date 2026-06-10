@@ -19,6 +19,7 @@ class AiService {
 
   static Future<String?> detectEmergency(String userInput) async {
     if (userInput.trim().isEmpty) return null;
+    if (_apiKey.trim().isEmpty) return null; // fix: skip call if no key
 
     try {
       final response = await http.post(
@@ -51,7 +52,6 @@ Rules:
         }),
       ).timeout(const Duration(seconds: 8));
 
-      
       if (response.statusCode != 200) return null;
 
       final data = jsonDecode(response.body);
@@ -63,8 +63,13 @@ Rules:
       if (text == null) return null;
       return _validIds.contains(text) ? text : null;
     } catch (e, stack) {
-      print('AI error: $e');
-      print('AI stack: $stack');
+      assert(() {
+        // ignore: avoid_print
+        print('AI error: $e');
+        // ignore: avoid_print
+        print('AI stack: $stack');
+        return true;
+      }());
       return null;
     }
   }

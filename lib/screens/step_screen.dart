@@ -11,10 +11,10 @@ import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/tts_service.dart';
-import 'dart:async';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+
 
 class StepScreen extends StatefulWidget {
   final String emergencyId;
@@ -191,7 +191,7 @@ class _StepScreenState extends State<StepScreen> {
     }
   }
 
-  Future<void> _nextStep() async {
+  void _nextStep() async {
     if (_currentStep < _steps.length - 1) {
       _recordCurrentStepDuration();
       setState(() {
@@ -221,7 +221,7 @@ class _StepScreenState extends State<StepScreen> {
       );
       if (_ttsEnabled) TtsService.instance.stop();
       await _stopHandsFreeListening();
-      setState(() => _handsFreeEnabled = false);
+      if (mounted) setState(() => _handsFreeEnabled = false);
     }
   }
 
@@ -239,6 +239,7 @@ class _StepScreenState extends State<StepScreen> {
     }
   }
   void _resetProtocol() {
+    final l10n = AppLocalizations.of(context)!; // ← add this line
   showDialog(
     context: context,
     builder: (context) {
@@ -252,16 +253,14 @@ class _StepScreenState extends State<StepScreen> {
           children: [
             Icon(Icons.restart_alt, color: widget.emergencyColor),
             const SizedBox(width: 10),
-            const Text('Restart Protocol'),
+            
           ],
         ),
-        content: const Text(
-          'This will restart the guide from Step 1. Are you sure?',
-        ),
+        content: Text(l10n.stepRestartBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.settingsCancel),
           ),
           TextButton(
             onPressed: () {
@@ -288,10 +287,10 @@ class _StepScreenState extends State<StepScreen> {
             style: TextButton.styleFrom(
               foregroundColor: widget.emergencyColor,
             ),
-            child: const Text(
-              'Restart',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text(
+          l10n.stepRestartConfirm,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
           ),
         ],
       );
@@ -313,6 +312,18 @@ Future<void> _startHandsFreeListening() async {
   if (_handsFreeListening || _completed) return;
   if (!_handsFreeReady) {
     final available = await _handsFree.initialize(
+      onStatus: (status) {
+      final listening = status == SpeechToText.listeningStatus;
+      if (mounted && _handsFreeListening != listening) {
+        setState(() => _handsFreeListening = listening);
+        if (!listening && _handsFreeEnabled && !_completed) {
+          Future.delayed(
+            const Duration(milliseconds: 500),
+            _startHandsFreeListening,
+          );
+        }
+      }
+    },
       onError: (error) {
         if (!mounted) return;
         if (error.permanent) setState(() => _handsFreeReady = false);
@@ -361,7 +372,7 @@ void _onHandsFreeResult(SpeechRecognitionResult result) {
   final words = result.recognizedWords.toLowerCase().trim();
 
   // ── Next words (English + typos + Hebrew + Arabic) ──
-  final nextWords = [
+    const nextWords = <String>[
     // English
     'next', 'nex', 'nets', 'neck', 'text',
     'continue', 'move on', 'go ahead', 'forward', 'go forward',
@@ -373,7 +384,7 @@ void _onHandsFreeResult(SpeechRecognitionResult result) {
   ];
 
   // ── Previous words (English + Hebrew + Arabic) ──
-  final previousWords = [
+  const previousWords = <String>[
     // English
     'previous', 'prev', 'back', 'go back', 'before',
     'last', 'return', 'undo',
@@ -511,7 +522,7 @@ Widget build(BuildContext context) {
         if (!_loading && !_completed && _steps.isNotEmpty)
           IconButton(
             icon: const Icon(Icons.restart_alt),
-            tooltip: 'Restart Protocol',
+            tooltip: l10n.stepRestartTitle,
             onPressed: _resetProtocol,
           ),
         if (!_loading && !_completed && _steps.isNotEmpty)
@@ -520,7 +531,7 @@ Widget build(BuildContext context) {
               _handsFreeEnabled ? Icons.hearing : Icons.hearing_disabled,
               color: _handsFreeEnabled ? widget.emergencyColor : null,
             ),
-            tooltip: _handsFreeEnabled ? 'Hands-free ON' : 'Hands-free OFF',
+            tooltip: _handsFreeEnabled ? l10n.stepHandsFreeOn : l10n.stepHandsFreeOff,
             onPressed: _toggleHandsFree,
           ),
         IconButton(
@@ -629,7 +640,7 @@ Widget build(BuildContext context) {
                   Icon(Icons.mic, color: widget.emergencyColor, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Hands-free active — say "Next" or "Back"',
+                    l10n.stepHandsFreeBanner,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: widget.emergencyColor,
                       fontWeight: FontWeight.w600,

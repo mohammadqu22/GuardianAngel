@@ -317,6 +317,18 @@
   "disclaimerAcknowledge": "By continuing, you acknowledge that this guidance does not replace emergency medical services and that you will call 101 for serious medical situations.",
   "disclaimerVersion": "Guardian Angel v1.0.0 • Clinical Sentinel UI",
   "disclaimerContinueBtn": "I UNDERSTAND — CONTINUE",
-
+  "homeAiAnalyzing": "AI is analyzing...",
+  "homeAiDetected": "AI detected: {title} — tap to open",
+  "@homeAiDetected": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "stepRestartTitle": "Restart Protocol",
+  "stepRestartBody": "This will restart the guide from Step 1. Are you sure?",
+  "stepRestartConfirm": "Restart",
+  "stepHandsFreeBanner": "Hands-free active — say \"Next\" or \"Back\"",
+  "stepHandsFreeOn": "Hands-free ON",
+  "stepHandsFreeOff": "Hands-free OFF",
   "homeAutoPrompt": "What is your emergency? Tap to dismiss."
 }

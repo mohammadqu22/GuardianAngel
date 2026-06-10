@@ -587,5 +587,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get disclaimerContinueBtn => 'أفهم — متابعة';
 
   @override
+  String get homeAiAnalyzing => 'الذكاء الاصطناعي يحلل...';
+
+  @override
+  String homeAiDetected(String title) {
+    return 'اكتشف الذكاء الاصطناعي: $title — اضغط للفتح';
+  }
+
+  @override
+  String get stepRestartTitle => 'إعادة تشغيل البروتوكول';
+
+  @override
+  String get stepRestartBody =>
+      'سيؤدي هذا إلى إعادة تشغيل الدليل من الخطوة 1. هل أنت متأكد؟';
+
+  @override
+  String get stepRestartConfirm => 'إعادة تشغيل';
+
+  @override
+  String get stepHandsFreeBanner =>
+      'الوضع الحر نشط — قل \"التالي\" أو \"السابق\"';
+
+  @override
+  String get stepHandsFreeOn => 'الوضع الحر مفعّل';
+
+  @override
+  String get stepHandsFreeOff => 'الوضع الحر معطّل';
+
+  @override
   String get homeAutoPrompt => 'ما هي حالتك الطارئة؟ اضغط للإلغاء.';
 }

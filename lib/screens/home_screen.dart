@@ -40,10 +40,10 @@ class _HomeScreenState extends State<HomeScreen>
   bool _learnMode = false;
   Map<String, Map<String, dynamic>> _learningProgress = {};
 
-  // The learn summary card tracks the scroll gesture: its height/opacity
-  // fraction (1 = fully shown) follows the finger over ~_summaryCollapseRange
-  // px and snaps to the nearest end when the scroll settles. The SOS button
-  // does a simpler shrink in emergency mode.
+  // The header card (learn summary / nearby medical help) tracks the scroll
+  // gesture: its height/opacity fraction (1 = fully shown) follows the finger
+  // over ~_summaryCollapseRange px and snaps to the nearest end when the
+  // scroll settles. The SOS button does a simpler shrink in emergency mode.
   static const double _summaryCollapseRange = 110;
   late final AnimationController _summaryController;
   bool _callButtonCompact = false;
@@ -543,23 +543,27 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(height: 14),
-                if (_learnMode)
-                  ClipRect(
-                    child: AnimatedBuilder(
-                      animation: _summaryController,
-                      builder: (context, child) => Align(
-                        alignment: Alignment.topCenter,
-                        heightFactor: _summaryController.value,
-                        child: Opacity(
-                          opacity: _summaryController.value,
-                          child: child,
-                        ),
+                // Both header cards (learn summary / nearby medical help)
+                // collapse in sync with grid scrolling so the protocols get
+                // the vertical space while browsing.
+                ClipRect(
+                  child: AnimatedBuilder(
+                    animation: _summaryController,
+                    builder: (context, child) => Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: _summaryController.value,
+                      child: Opacity(
+                        opacity: _summaryController.value,
+                        child: child,
                       ),
-                      child: _buildLearningSummary(l10n, allEmergencies),
                     ),
-                  )
-                else
-                  _inertWhileSearching(_buildNearbyMedicalButton(context)),
+                    child: _learnMode
+                        ? _buildLearningSummary(l10n, allEmergencies)
+                        : _inertWhileSearching(
+                            _buildNearbyMedicalButton(context),
+                          ),
+                  ),
+                ),
                 const SizedBox(height: 18),
 
                 // ── Scrollable grid or "No results" ──
@@ -700,30 +704,27 @@ class _HomeScreenState extends State<HomeScreen>
     var callCompact = _callButtonCompact;
     if (notification is ScrollUpdateNotification) {
       final delta = notification.scrollDelta ?? 0;
-      if (_learnMode) {
-        if (m.pixels <= 0) {
-          // Pulled back to the very top — make sure the header is fully open.
-          if (_summaryController.value < 1 && !_summaryController.isAnimating) {
-            _summaryController.animateTo(1, curve: Curves.easeOut);
-          }
-        } else if (!inBottomOverscroll && delta != 0) {
-          // Track the gesture: the header shrinks/grows proportionally to
-          // how far the grid has been scrolled, not as an on/off jump.
-          _summaryController.stop();
-          _summaryController.value =
-              (_summaryController.value - delta / _summaryCollapseRange).clamp(
-                0.0,
-                1.0,
-              );
+      if (m.pixels <= 0) {
+        // Pulled back to the very top — make sure the header is fully open.
+        if (_summaryController.value < 1 && !_summaryController.isAnimating) {
+          _summaryController.animateTo(1, curve: Curves.easeOut);
         }
-      } else {
-        if (m.pixels <= 0 || (!inBottomOverscroll && delta < -1)) {
-          callCompact = false;
-        } else if (!inBottomOverscroll && delta > 1) {
-          callCompact = true;
+        callCompact = false;
+      } else if (!inBottomOverscroll && delta != 0) {
+        // Track the gesture: the header card shrinks/grows proportionally to
+        // how far the grid has been scrolled, not as an on/off jump.
+        _summaryController.stop();
+        _summaryController.value =
+            (_summaryController.value - delta / _summaryCollapseRange).clamp(
+              0.0,
+              1.0,
+            );
+        if (!_learnMode) {
+          if (delta < -1) callCompact = false;
+          if (delta > 1) callCompact = true;
         }
       }
-    } else if (notification is ScrollEndNotification && _learnMode) {
+    } else if (notification is ScrollEndNotification) {
       // Don't rest half-collapsed: settle to whichever end is closer.
       final value = _summaryController.value;
       if (value > 0 && value < 1) {
@@ -844,10 +845,13 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// Compact single-line entry: kept slim so the protocol grid starts as high
+  /// on the screen as possible — the destination screen explains itself.
   Widget _buildNearbyMedicalButton(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
 
     return Material(
       color: cs.surfaceContainerLow,
@@ -857,7 +861,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
@@ -868,40 +872,32 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: AppColors.tertiary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: const Icon(
                   Icons.local_hospital_outlined,
                   color: AppColors.tertiary,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.homeNearbyMedical,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      l10n.homeNearbyMedicalSubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  l10n.homeNearbyMedical,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
                 ),
               ),
-              Icon(Icons.chevron_right, color: cs.outline),
+              Icon(
+                isRtl ? Icons.chevron_left : Icons.chevron_right,
+                color: cs.outline,
+              ),
             ],
           ),
         ),

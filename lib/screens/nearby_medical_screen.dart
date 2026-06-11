@@ -255,13 +255,19 @@ class _MedicalSearchCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(_categoryIcon(category), color: color),
+                child: Image.asset(
+                  _categoryIconAsset(category),
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -339,11 +345,13 @@ class _MedicalSearchCard extends StatelessWidget {
     };
   }
 
-  IconData _categoryIcon(MedicalPlaceCategory category) {
+  String _categoryIconAsset(MedicalPlaceCategory category) {
     return switch (category) {
-      MedicalPlaceCategory.hospitals => Icons.local_hospital,
-      MedicalPlaceCategory.pharmacies => Icons.local_pharmacy,
-      MedicalPlaceCategory.clinics => Icons.medical_services,
+      MedicalPlaceCategory.hospitals =>
+        'assets/icons/medical_help/hospitals.png',
+      MedicalPlaceCategory.pharmacies =>
+        'assets/icons/medical_help/pharmacies.png',
+      MedicalPlaceCategory.clinics => 'assets/icons/medical_help/clinics.png',
     };
   }
 

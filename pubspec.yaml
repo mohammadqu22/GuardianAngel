@@ -108,6 +108,8 @@ flutter:
     - assets/images/cpr_infant/
     - assets/images/seizures/
     - assets/branding/
+    - assets/icons/protocols/
+    - assets/icons/medical_help/
     - assets/audio/en/bleeding/
     - assets/audio/en/burns/
     - assets/audio/en/choking/

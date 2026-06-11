@@ -11,6 +11,7 @@ import '../core/app_theme.dart';
 import '../services/database_service.dart';
 import '../services/phone_service.dart';
 import '../services/quiz_generator.dart';
+import '../widgets/protocol_icon.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -92,49 +93,37 @@ class _HomeScreenState extends State<HomeScreen>
     {
       'id': 'choking',
       'title': l10n.emergencyChoking,
-      'icon': Icons.air,
       'color': AppColors.chokingBlue,
     },
     {
       'id': 'choking_infant',
       'title': l10n.emergencyChokingInfant,
-      'icon': Icons.baby_changing_station,
       'color': AppColors.chokingBlue,
     },
-    {
-      'id': 'cpr',
-      'title': l10n.emergencyCPR,
-      'icon': Icons.favorite,
-      'color': AppColors.cprRed,
-    },
+    {'id': 'cpr', 'title': l10n.emergencyCPR, 'color': AppColors.cprRed},
     {
       'id': 'cpr_infant',
       'title': l10n.emergencyCPRInfant,
-      'icon': Icons.monitor_heart,
       'color': AppColors.cprRed,
     },
     {
       'id': 'burns',
       'title': l10n.emergencyBurns,
-      'icon': Icons.local_fire_department,
       'color': AppColors.burnOrange,
     },
     {
       'id': 'bleeding',
       'title': l10n.emergencyBleeding,
-      'icon': Icons.water_drop,
       'color': AppColors.bleedingCrimson,
     },
     {
       'id': 'fractures',
       'title': l10n.emergencyFractures,
-      'icon': Icons.healing,
       'color': AppColors.fracturePurple,
     },
     {
       'id': 'seizures',
       'title': l10n.emergencySeizures,
-      'icon': Icons.warning_amber_rounded,
       'color': AppColors.seizureAmber,
     },
   ];
@@ -629,7 +618,6 @@ class _HomeScreenState extends State<HomeScreen>
                                         final e = filteredEmergencies[i];
                                         final id = e['id'] as String;
                                         final title = e['title'] as String;
-                                        final icon = e['icon'] as IconData;
                                         final color = e['color'] as Color;
                                         return _learnMode
                                             ? _buildLearningCard(
@@ -637,14 +625,12 @@ class _HomeScreenState extends State<HomeScreen>
                                                 l10n: l10n,
                                                 id: id,
                                                 title: title,
-                                                icon: icon,
                                                 color: color,
                                               )
                                             : _buildEmergencyCard(
                                                 context,
                                                 id: id,
                                                 title: title,
-                                                icon: icon,
                                                 color: color,
                                               );
                                       },
@@ -1016,7 +1002,6 @@ class _HomeScreenState extends State<HomeScreen>
     required AppLocalizations l10n,
     required String id,
     required String title,
-    required IconData icon,
     required Color color,
   }) {
     final theme = Theme.of(context);
@@ -1051,12 +1036,12 @@ class _HomeScreenState extends State<HomeScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 36, color: color),
+                  child: ProtocolIcon(emergencyId: id, color: color, size: 58),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -1132,7 +1117,6 @@ class _HomeScreenState extends State<HomeScreen>
     BuildContext context, {
     required String id,
     required String title,
-    required IconData icon,
     required Color color,
   }) {
     final cs = Theme.of(context).colorScheme;
@@ -1157,12 +1141,12 @@ class _HomeScreenState extends State<HomeScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 40, color: color),
+                  child: ProtocolIcon(emergencyId: id, color: color, size: 62),
                 ),
                 const SizedBox(height: 14),
                 Text(

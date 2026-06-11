@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +8,7 @@ import '../core/number_formatting.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
+import '../services/protocol_loader.dart';
 import '../services/tts_service.dart';
 
 class StepScreen extends StatefulWidget {
@@ -113,37 +112,17 @@ class _StepScreenState extends State<StepScreen> {
       _stepDurations = [];
     });
 
-    String? data;
-
-    // 1. Try the locale-specific file (he/ or ar/ subdirectory)
-    if (localeCode != 'en') {
-      try {
-        data = await rootBundle.loadString(
-          'assets/data/$localeCode/${widget.emergencyId}.json',
-        );
-      } catch (_) {
-        // locale file missing — will fall back to English below
-      }
-    }
-
-    // 2. Fall back to the English file in assets/data/
+    final Map<String, dynamic> json;
     try {
-      data ??= await rootBundle.loadString(
-        'assets/data/${widget.emergencyId}.json',
-      );
-    } catch (_) {
+      json = await ProtocolLoader.load(widget.emergencyId, localeCode);
+    } on ProtocolLoadException {
       if (!mounted) return;
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.stepErrorFailed;
         _loading = false;
       });
       return;
-    }
-
-    final Map<String, dynamic> json;
-    try {
-      json = jsonDecode(data) as Map<String, dynamic>;
-    } catch (_) {
+    } on ProtocolFormatException {
       if (!mounted) return;
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
@@ -151,15 +130,8 @@ class _StepScreenState extends State<StepScreen> {
       });
       return;
     }
-    final steps = json['steps'];
+    final steps = json['steps'] as List;
     if (!mounted) return;
-    if (steps == null || (steps as List).isEmpty) {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
-        _loading = false;
-      });
-      return;
-    }
     setState(() {
       _steps = steps;
       _warnings = json['warnings'] ?? [];

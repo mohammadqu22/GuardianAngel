@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guardian_angel/services/database_service.dart';
 import 'package:path/path.dart' as p;
@@ -7,6 +9,12 @@ void main() {
   setUpAll(() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    // Each test file gets its own databases directory: flutter test runs
+    // files in parallel, and sharing the default path lets one file's
+    // deleteDatabase race another's open connection.
+    await databaseFactory.setDatabasesPath(
+      Directory.systemTemp.createTempSync('ga_learning_progress_').path,
+    );
     // Start from a clean database file so this run is isolated.
     final path = p.join(await getDatabasesPath(), 'guardian_angel.db');
     await databaseFactory.deleteDatabase(path);

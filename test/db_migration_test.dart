@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guardian_angel/services/database_service.dart';
 import 'package:path/path.dart' as p;
@@ -12,6 +14,11 @@ void main() {
   setUpAll(() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    // Own databases directory — test files run in parallel and must not
+    // share the default path (see learning_progress_test for details).
+    await databaseFactory.setDatabasesPath(
+      Directory.systemTemp.createTempSync('ga_db_migration_').path,
+    );
     dbPath = p.join(await getDatabasesPath(), 'guardian_angel.db');
     await databaseFactory.deleteDatabase(dbPath);
 

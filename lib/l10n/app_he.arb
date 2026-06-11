@@ -3,6 +3,7 @@
   "appName": "Guardian Angel",
   "homeSelectEmergency": "בחר סוג חירום",
   "homeSearchHint": "חפש חירום...",
+  "homeSearchHintLearn": "חפש שיעורים...",
   "homeDictationStartTooltip": "חיפוש קולי",
   "homeDictationStopTooltip": "עצור חיפוש קולי",
   "homeDictationUnavailable": "חיפוש קולי אינו זמין במכשיר זה.",
@@ -21,6 +22,95 @@
   },
   "homeNearbyMedical": "עזרה רפואית קרובה",
   "homeNearbyMedicalSubtitle": "בתי חולים, בתי מרקחת ומרפאות בסביבה",
+  "homeModeEmergency": "חירום",
+  "homeModeLearn": "למידה",
+  "homeLearnTitle": "תרגול עזרה ראשונה",
+  "learnNotStarted": "טרם התחלת",
+  "learnCompleted": "הושלם",
+  "learnBestScore": "הציון הטוב ביותר: {score}/{total}",
+  "@learnBestScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnStartQuiz": "התחל חידון",
+  "learnGoToQuiz": "מעבר לחידון",
+  "learnReviewLesson": "חזרה לשיעור",
+  "learnInProgress": "בתהליך",
+  "learnAnswered": "נענו {answered} מתוך {total}",
+  "@learnAnswered": {
+    "placeholders": {
+      "answered": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnListen": "האזנה לשלב הזה",
+  "quizTitle": "חידון",
+  "quizQuestionProgress": "שאלה {current} מתוך {total}",
+  "@quizQuestionProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionWhichStep": "איזה מהבאים הוא שלב {number}?",
+  "@quizQuestionWhichStep": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizNext": "הבא",
+  "quizFinish": "סיום",
+  "learnSummary": "הושלמו {completed} מתוך {total} שיעורים",
+  "@learnSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionAfter": "איזה שלב מגיע מיד אחרי: \"{title}\"?",
+  "@quizQuestionAfter": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizQuestionInstruction": "לאיזה שלב שייכת ההנחיה הזו?",
+  "quizCorrect": "נכון!",
+  "quizWrong": "לא מדויק",
+  "quizFromProtocol": "מתוך הפרוטוקול:",
+  "quizReviewTitle": "סקירת הטעויות שלך",
+  "quizReviewHint": "הקישו על פריט כדי לחזור לשלב הזה בפרוטוקול.",
+  "quizYourAnswer": "התשובה שלך: {title}",
+  "@quizYourAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizCorrectAnswer": "התשובה הנכונה: {title}",
+  "@quizCorrectAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizMedalGold": "זהב",
+  "quizMedalSilver": "כסף",
+  "quizMedalBronze": "ארד",
+  "quizAttempt": "ניסיון {number}",
+  "@quizAttempt": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizResultTitle": "החידון הושלם",
+  "quizResultScore": "ענית נכון על {score} מתוך {total} שאלות.",
+  "@quizResultScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizRetake": "חזרה על החידון",
   "emergencyChoking": "חנק",
   "emergencyChokingInfant": "חנק (תינוק)",
   "emergencyCPR": "החייאה",

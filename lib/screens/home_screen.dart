@@ -3,12 +3,14 @@ import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'learning_lesson_screen.dart';
 import 'nearby_medical_screen.dart';
 import 'step_screen.dart';
 import 'settings_screen.dart';
 import '../core/app_theme.dart';
 import '../services/database_service.dart';
 import '../services/phone_service.dart';
+import '../services/quiz_generator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -24,13 +26,55 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
   final ScrollController _gridController = ScrollController();
   final SpeechToText _speech = SpeechToText();
 
   String _searchQuery = '';
   Locale? _lastLocale;
+
+  // Learning Mode: false = Emergency (default), true = Learn.
+  bool _learnMode = false;
+  Map<String, Map<String, dynamic>> _learningProgress = {};
+
+  // The learn summary card tracks the scroll gesture: its height/opacity
+  // fraction (1 = fully shown) follows the finger over ~_summaryCollapseRange
+  // px and snaps to the nearest end when the scroll settles. The SOS button
+  // does a simpler shrink in emergency mode.
+  static const double _summaryCollapseRange = 110;
+  late final AnimationController _summaryController;
+  bool _callButtonCompact = false;
+
+  // While the search field has focus every other control goes inert: the
+  // first tap anywhere else only dismisses the keyboard.
+  bool _searchFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _summaryController = AnimationController(
+      vsync: this,
+      value: 1.0,
+      duration: const Duration(milliseconds: 200),
+    );
+    _searchFocus.addListener(() {
+      if (mounted && _searchFocused != _searchFocus.hasFocus) {
+        setState(() => _searchFocused = _searchFocus.hasFocus);
+      }
+    });
+  }
+
+  void _unfocusSearch() {
+    if (_searchFocus.hasFocus) _searchFocus.unfocus();
+  }
+
+  /// Blocks taps on [child] while the search field has focus, letting them
+  /// bubble to the screen-level GestureDetector that dismisses the keyboard.
+  Widget _inertWhileSearching(Widget child) =>
+      AbsorbPointer(absorbing: _searchFocused, child: child);
 
   // Scroll-affordance fades for the emergency grid: the bottom fade hints that
   // more protocols lie below, the top fade appears once the user scrolls down.
@@ -119,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _speech.cancel();
     _gridController.dispose();
     _searchController.dispose();
+    _searchFocus.dispose();
+    _summaryController.dispose();
     super.dispose();
   }
 
@@ -175,6 +221,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _resetGridScroll() {
     _gridScrolledFromTop = false;
     _gridAtBottom = false;
+    _summaryController.value = 1.0;
+    _callButtonCompact = false;
     if (!_gridController.hasClients) return;
     _gridController.jumpTo(0);
   }
@@ -319,6 +367,42 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _refreshLearningProgress() async {
+    try {
+      final progress = await DatabaseService.getAllLearningProgress();
+      if (mounted) setState(() => _learningProgress = progress);
+    } catch (_) {
+      // Progress is a nicety — the learning list works without it.
+    }
+  }
+
+  void _setLearnMode(bool learn) {
+    if (_learnMode == learn) return;
+    setState(() {
+      _learnMode = learn;
+      _resetGridScroll();
+    });
+    if (learn) _refreshLearningProgress();
+  }
+
+  Future<void> _openLesson({
+    required String id,
+    required String title,
+    required Color color,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LearningLessonScreen(
+          emergencyId: id,
+          emergencyTitle: title,
+          emergencyColor: color,
+        ),
+      ),
+    );
+    if (mounted) _refreshLearningProgress();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -339,211 +423,324 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ──
-              SizedBox(
-                height: 92,
-                width: double.infinity,
-                child: Stack(
-                  alignment: Alignment.topCenter,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/branding/guardian_angel_logo_concept.png',
-                          height: 88,
-                          semanticLabel: l10n.appName,
-                        ),
-                      ],
-                    ),
-                    // Settings icon
-                    Align(
-                      alignment: AlignmentDirectional.topEnd,
-                      child: IconButton(
-                        tooltip: l10n.homeSettingsTooltip,
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SettingsScreen(
-                                onThemeModeChanged: widget.onThemeModeChanged,
-                                onLocaleChanged: widget.onLocaleChanged,
-                              ),
-                            ),
-                          );
-                        },
-                        style: IconButton.styleFrom(
-                          backgroundColor: cs.surfaceContainerLow,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                          fixedSize: const Size(48, 48),
-                        ),
-                        icon: Icon(
-                          Icons.settings_outlined,
-                          color: cs.onSurface,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // ── Section title ──
-              Text(l10n.homeSelectEmergency, style: theme.textTheme.titleLarge),
-              const SizedBox(height: 16),
-
-              // ── Search Bar ──
-              TextField(
-                controller: _searchController,
-                onChanged: _setSearchQuery,
-                decoration: InputDecoration(
-                  hintText: l10n.homeSearchHint,
-                  prefixIcon: Icon(Icons.search, color: cs.outline),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
+        // Screen-level tap catcher: while the search field has focus, any tap
+        // outside it (empty space or an inert control) dismisses the keyboard.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _unfocusSearch,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ──
+                SizedBox(
+                  height: 92,
+                  width: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
                     children: [
-                      if (_searchQuery.isNotEmpty)
-                        IconButton(
-                          tooltip: MaterialLocalizations.of(
-                            context,
-                          ).deleteButtonTooltip,
-                          icon: Icon(Icons.clear, color: cs.outline),
-                          onPressed: () {
-                            _searchController.clear();
-                            _setSearchQuery('');
-                          },
-                        ),
-                      IconButton(
-                        tooltip: _isListening
-                            ? l10n.homeDictationStopTooltip
-                            : l10n.homeDictationStartTooltip,
-                        onPressed: _speechInitializing
-                            ? null
-                            : () => _toggleDictation(l10n),
-                        icon: Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: _isListening ? cs.primary : cs.outline,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/branding/guardian_angel_logo_concept.png',
+                            height: 88,
+                            semanticLabel: l10n.appName,
+                          ),
+                        ],
+                      ),
+                      // Settings icon
+                      Align(
+                        alignment: AlignmentDirectional.topEnd,
+                        child: _inertWhileSearching(
+                          IconButton(
+                            tooltip: l10n.homeSettingsTooltip,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SettingsScreen(
+                                    onThemeModeChanged:
+                                        widget.onThemeModeChanged,
+                                    onLocaleChanged: widget.onLocaleChanged,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: IconButton.styleFrom(
+                              backgroundColor: cs.surfaceContainerLow,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                              fixedSize: const Size(48, 48),
+                            ),
+                            icon: Icon(
+                              Icons.settings_outlined,
+                              color: cs.onSurface,
+                              size: 24,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              _buildNearbyMedicalButton(context),
-              const SizedBox(height: 18),
+                const SizedBox(height: 8),
 
-              // ── Scrollable grid or "No results" ──
-              Expanded(
-                child: filteredEmergencies.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 64, color: cs.outline),
-                            const SizedBox(height: 12),
-                            Text(
-                              l10n.homeNoResults,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: cs.outline,
-                              ),
-                            ),
-                          ],
+                // ── Mode switch: Emergency / Learn ──
+                _inertWhileSearching(_buildModeSwitch(l10n)),
+                const SizedBox(height: 12),
+
+                // ── Section title ──
+                Text(
+                  _learnMode ? l10n.homeLearnTitle : l10n.homeSelectEmergency,
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+
+                // ── Search Bar ──
+                TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocus,
+                  onChanged: _setSearchQuery,
+                  decoration: InputDecoration(
+                    hintText: _learnMode
+                        ? l10n.homeSearchHintLearn
+                        : l10n.homeSearchHint,
+                    prefixIcon: Icon(Icons.search, color: cs.outline),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchQuery.isNotEmpty)
+                          IconButton(
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).deleteButtonTooltip,
+                            icon: Icon(Icons.clear, color: cs.outline),
+                            onPressed: () {
+                              _searchController.clear();
+                              _setSearchQuery('');
+                            },
+                          ),
+                        IconButton(
+                          tooltip: _isListening
+                              ? l10n.homeDictationStopTooltip
+                              : l10n.homeDictationStartTooltip,
+                          onPressed: _speechInitializing
+                              ? null
+                              : () => _toggleDictation(l10n),
+                          icon: Icon(
+                            _isListening ? Icons.mic : Icons.mic_none,
+                            color: _isListening ? cs.primary : cs.outline,
+                          ),
                         ),
-                      )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          const spacing = 16.0;
-                          // When there are more than four protocols, shrink the
-                          // cards enough that the next row peeks from below. That
-                          // gives a clear cue that more protocols are available.
-                          const peek = 44.0;
-                          final hasOverflow = filteredEmergencies.length > 4;
-                          final available =
-                              constraints.maxHeight -
-                              spacing -
-                              (hasOverflow ? spacing + peek : 0);
-                          final cardHeight = available > 160
-                              ? available / 2
-                              : 80;
-                          final showBottomFade = hasOverflow && !_gridAtBottom;
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (_learnMode)
+                  ClipRect(
+                    child: AnimatedBuilder(
+                      animation: _summaryController,
+                      builder: (context, child) => Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _summaryController.value,
+                        child: Opacity(
+                          opacity: _summaryController.value,
+                          child: child,
+                        ),
+                      ),
+                      child: _buildLearningSummary(l10n, allEmergencies),
+                    ),
+                  )
+                else
+                  _inertWhileSearching(_buildNearbyMedicalButton(context)),
+                const SizedBox(height: 18),
 
-                          return NotificationListener<ScrollNotification>(
-                            onNotification: _onGridScroll,
-                            child: Stack(
+                // ── Scrollable grid or "No results" ──
+                Expanded(
+                  child: _inertWhileSearching(
+                    filteredEmergencies.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                GridView.builder(
-                                  controller: _gridController,
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: EdgeInsets.zero,
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: spacing,
-                                        mainAxisSpacing: spacing,
-                                        mainAxisExtent: cardHeight.toDouble(),
-                                      ),
-                                  itemCount: filteredEmergencies.length,
-                                  itemBuilder: (context, i) {
-                                    final e = filteredEmergencies[i];
-                                    return _buildEmergencyCard(
-                                      context,
-                                      id: e['id'] as String,
-                                      title: e['title'] as String,
-                                      icon: e['icon'] as IconData,
-                                      color: e['color'] as Color,
-                                    );
-                                  },
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: cs.outline,
                                 ),
-                                _buildScrollFade(
-                                  top: true,
-                                  visible: _gridScrolledFromTop,
-                                  color: cs.surface,
-                                ),
-                                _buildScrollFade(
-                                  top: false,
-                                  visible: showBottomFade,
-                                  color: cs.surface,
+                                const SizedBox(height: 12),
+                                Text(
+                                  l10n.homeNoResults,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: cs.outline,
+                                  ),
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              const spacing = 16.0;
+                              // When there are more than four protocols, shrink the
+                              // cards enough that the next row peeks from below. That
+                              // gives a clear cue that more protocols are available.
+                              const peek = 44.0;
+                              final hasOverflow =
+                                  filteredEmergencies.length > 4;
+                              final available =
+                                  constraints.maxHeight -
+                                  spacing -
+                                  (hasOverflow ? spacing + peek : 0);
+                              final cardHeight = available > 160
+                                  ? available / 2
+                                  : 80;
+                              final showBottomFade =
+                                  hasOverflow && !_gridAtBottom;
+
+                              return NotificationListener<ScrollNotification>(
+                                onNotification: _onGridScroll,
+                                child: Stack(
+                                  children: [
+                                    GridView.builder(
+                                      controller: _gridController,
+                                      physics: const BouncingScrollPhysics(),
+                                      padding: EdgeInsets.zero,
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 2,
+                                            crossAxisSpacing: spacing,
+                                            mainAxisSpacing: spacing,
+                                            mainAxisExtent: cardHeight
+                                                .toDouble(),
+                                          ),
+                                      itemCount: filteredEmergencies.length,
+                                      itemBuilder: (context, i) {
+                                        final e = filteredEmergencies[i];
+                                        final id = e['id'] as String;
+                                        final title = e['title'] as String;
+                                        final icon = e['icon'] as IconData;
+                                        final color = e['color'] as Color;
+                                        return _learnMode
+                                            ? _buildLearningCard(
+                                                context,
+                                                l10n: l10n,
+                                                id: id,
+                                                title: title,
+                                                icon: icon,
+                                                color: color,
+                                              )
+                                            : _buildEmergencyCard(
+                                                context,
+                                                id: id,
+                                                title: title,
+                                                icon: icon,
+                                                color: color,
+                                              );
+                                      },
+                                    ),
+                                    _buildScrollFade(
+                                      top: true,
+                                      visible: _gridScrolledFromTop,
+                                      color: cs.surface,
+                                    ),
+                                    _buildScrollFade(
+                                      top: false,
+                                      visible: showBottomFade,
+                                      color: cs.surface,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
 
-      // ── SOS bottom bar ──
-      bottomNavigationBar: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-        child: _buildCallButton(context),
-      ),
+      // ── SOS bottom bar (emergency mode only) ──
+      bottomNavigationBar: _learnMode
+          ? null
+          : SafeArea(
+              top: false,
+              minimum: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _unfocusSearch,
+                child: _inertWhileSearching(_buildCallButton(context)),
+              ),
+            ),
     );
   }
 
   /// Keeps the edge fades in sync with the scroll position: the top fade shows
   /// once scrolled away from the top, the bottom fade hides at the very end.
+  /// In learn mode it also collapses the summary card while scrolling down and
+  /// brings it back on the first upward scroll.
   bool _onGridScroll(ScrollNotification notification) {
     final m = notification.metrics;
     final fromTop = m.pixels > 8;
     final atBottom = m.extentAfter == 0;
-    if (fromTop != _gridScrolledFromTop || atBottom != _gridAtBottom) {
+
+    // The bottom bounce of BouncingScrollPhysics produces upward deltas the
+    // user never asked for — anything at/past the bottom edge is ignored so
+    // the header/button only react to intentional scrolling.
+    final inBottomOverscroll = m.pixels >= m.maxScrollExtent - 1;
+
+    var callCompact = _callButtonCompact;
+    if (notification is ScrollUpdateNotification) {
+      final delta = notification.scrollDelta ?? 0;
+      if (_learnMode) {
+        if (m.pixels <= 0) {
+          // Pulled back to the very top — make sure the header is fully open.
+          if (_summaryController.value < 1 && !_summaryController.isAnimating) {
+            _summaryController.animateTo(1, curve: Curves.easeOut);
+          }
+        } else if (!inBottomOverscroll && delta != 0) {
+          // Track the gesture: the header shrinks/grows proportionally to
+          // how far the grid has been scrolled, not as an on/off jump.
+          _summaryController.stop();
+          _summaryController.value =
+              (_summaryController.value - delta / _summaryCollapseRange).clamp(
+                0.0,
+                1.0,
+              );
+        }
+      } else {
+        if (m.pixels <= 0 || (!inBottomOverscroll && delta < -1)) {
+          callCompact = false;
+        } else if (!inBottomOverscroll && delta > 1) {
+          callCompact = true;
+        }
+      }
+    } else if (notification is ScrollEndNotification && _learnMode) {
+      // Don't rest half-collapsed: settle to whichever end is closer.
+      final value = _summaryController.value;
+      if (value > 0 && value < 1) {
+        _summaryController.animateTo(
+          value >= 0.5 ? 1 : 0,
+          curve: Curves.easeOut,
+        );
+      }
+    }
+
+    if (fromTop != _gridScrolledFromTop ||
+        atBottom != _gridAtBottom ||
+        callCompact != _callButtonCompact) {
       setState(() {
         _gridScrolledFromTop = fromTop;
         _gridAtBottom = atBottom;
+        _callButtonCompact = callCompact;
       });
     }
     return false;
@@ -587,8 +784,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Semantics(
       button: true,
       label: l10n.homeCallBtn,
-      child: SizedBox(
-        height: 52,
+      // Shrinks a little while the grid scrolls down so more protocols are
+      // visible, and springs back on the first upward scroll. The horizontal
+      // margin pulls the sides in so the whole button gets smaller, not just
+      // its height.
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        height: _callButtonCompact ? 40 : 52,
+        margin: _callButtonCompact
+            ? const EdgeInsets.symmetric(horizontal: 32)
+            : EdgeInsets.zero,
         width: double.infinity,
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -697,6 +903,229 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Icon(Icons.chevron_right, color: cs.outline),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeSwitch(AppLocalizations l10n) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<bool>(
+        segments: [
+          ButtonSegment(
+            value: false,
+            label: Text(l10n.homeModeEmergency),
+            icon: const Icon(Icons.emergency_outlined, size: 18),
+          ),
+          ButtonSegment(
+            value: true,
+            label: Text(l10n.homeModeLearn),
+            icon: const Icon(Icons.school_outlined, size: 18),
+          ),
+        ],
+        selected: {_learnMode},
+        onSelectionChanged: (selection) => _setLearnMode(selection.first),
+        showSelectedIcon: false,
+        style: SegmentedButton.styleFrom(
+          backgroundColor: cs.surfaceContainerLow,
+          foregroundColor: cs.onSurfaceVariant,
+          selectedBackgroundColor: cs.primary,
+          selectedForegroundColor: cs.onPrimary,
+          side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _medalColor(QuizMedal medal) => switch (medal) {
+    QuizMedal.gold => AppColors.medalGold,
+    QuizMedal.silver => AppColors.medalSilver,
+    QuizMedal.bronze => AppColors.medalBronze,
+  };
+
+  Widget _buildLearningSummary(
+    AppLocalizations l10n,
+    List<Map<String, dynamic>> allEmergencies,
+  ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final total = allEmergencies.length;
+    final completed = allEmergencies
+        .where((e) => _learningProgress[e['id']]?['is_completed'] == 1)
+        .length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: AppColors.tertiary.withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.tertiary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(Icons.school_outlined, color: AppColors.tertiary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.learnSummary(completed, total),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: total == 0 ? 0 : completed / total,
+                    backgroundColor: cs.surfaceContainerHighest,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.tertiary,
+                    ),
+                    minHeight: 6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLearningCard(
+    BuildContext context, {
+    required AppLocalizations l10n,
+    required String id,
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final progress = _learningProgress[id];
+    final completed = progress != null && progress['is_completed'] == 1;
+    final bestScore = progress?['best_score'] as int?;
+    final quizTotal = progress?['quiz_total'] as int?;
+    final hasScore = completed && bestScore != null && (quizTotal ?? 0) > 0;
+    final medal = hasScore ? QuizMedal.of(bestScore, quizTotal!) : null;
+
+    // An abandoned quiz run shows as in-progress until the protocol is
+    // completed at least once; after that the completed badge wins.
+    final partialAnswered = progress?['partial_answered'] as int?;
+    final partialTotal = progress?['partial_total'] as int?;
+    final inProgress =
+        !completed && (partialAnswered ?? 0) > 0 && (partialTotal ?? 0) > 0;
+
+    return GestureDetector(
+      onTap: () => _openLesson(id: id, title: title, color: color),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: color.withValues(alpha: 0.45), width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 36, color: color),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      medal != null
+                          ? Icons.workspace_premium
+                          : completed
+                          ? Icons.check_circle
+                          : inProgress
+                          ? Icons.timelapse
+                          : Icons.radio_button_unchecked,
+                      size: 16,
+                      color: medal != null
+                          ? _medalColor(medal)
+                          : (completed || inProgress)
+                          ? color
+                          : cs.outline,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      completed
+                          ? l10n.learnCompleted
+                          : inProgress
+                          ? l10n.learnInProgress
+                          : l10n.learnNotStarted,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: (completed || inProgress)
+                            ? color
+                            : cs.onSurfaceVariant,
+                        fontWeight: (completed || inProgress)
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+                if (hasScore) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.learnBestScore(bestScore, quizTotal!),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ] else if (inProgress) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.learnAnswered(partialAnswered!, partialTotal!),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

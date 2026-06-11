@@ -78,6 +78,12 @@ class AppColors {
   static const Color bleedingCrimson = Color(0xFFD32F2F);
   static const Color fracturePurple = Color(0xFF9C27B0);
   static const Color seizureAmber = Color(0xFFFFA726);
+
+  // ── Learning Mode (quiz feedback + medals) ──
+  static const Color quizCorrectGreen = Color(0xFF2E7D32);
+  static const Color medalGold = Color(0xFFFFB300);
+  static const Color medalSilver = Color(0xFF90A4AE);
+  static const Color medalBronze = Color(0xFFB07C4F);
 }
 
 // ───────────────────────────────────────────────

@@ -435,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 // ── Header ──
                 SizedBox(
-                  height: 92,
+                  height: 68,
                   width: double.infinity,
                   child: Stack(
                     alignment: Alignment.topCenter,
@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen>
                         children: [
                           Image.asset(
                             'assets/branding/guardian_angel_logo_concept.png',
-                            height: 88,
+                            height: 64,
                             semanticLabel: l10n.appName,
                           ),
                         ],

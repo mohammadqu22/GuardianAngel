@@ -71,13 +71,6 @@ class _NearbyMedicalScreenState extends State<NearbyMedicalScreen> {
         foregroundColor: cs.onSurface,
         elevation: 0,
         centerTitle: false,
-        actions: [
-          IconButton(
-            tooltip: l10n.nearbyMedicalRefreshLocation,
-            onPressed: _loadingLocation ? null : _refreshLocation,
-            icon: const Icon(Icons.my_location),
-          ),
-        ],
       ),
       body: SafeArea(
         child: Padding(

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -53,8 +54,11 @@ void main() {
     expect(attempt, 2);
 
     var progress = await DatabaseService.getAllLearningProgress();
-    expect(progress['cpr']!['best_score'], 3,
-        reason: 'a worse retake must not lower the best score');
+    expect(
+      progress['cpr']!['best_score'],
+      3,
+      reason: 'a worse retake must not lower the best score',
+    );
     expect(progress['cpr']!['last_score'], 2);
     expect(progress['cpr']!['attempts'], 2);
 
@@ -71,17 +75,34 @@ void main() {
       correct: 2,
       total: 7,
       selections: [0, 2, 1],
+      locale: 'he',
     );
 
     final progress = await DatabaseService.getAllLearningProgress();
     final row = progress['choking']!;
-    expect(row['is_completed'], 0,
-        reason: 'a partial run must not count as completed');
+    expect(
+      row['is_completed'],
+      0,
+      reason: 'a partial run must not count as completed',
+    );
     expect(row['partial_answered'], 3);
     expect(row['partial_correct'], 2);
     expect(row['partial_total'], 7);
-    expect(row['partial_selections_json'], '[0,2,1]',
-        reason: 'per-question picks are stored so the quiz can resume');
+    final payload =
+        jsonDecode(row['partial_selections_json'] as String)
+            as Map<String, dynamic>;
+    expect(
+      payload['locale'],
+      'he',
+      reason:
+          'picks are locale-tagged so resume can reject runs made in '
+          'another language',
+    );
+    expect(
+      payload['picks'],
+      [0, 2, 1],
+      reason: 'per-question picks are stored so the quiz can resume',
+    );
   });
 
   test('finishing the quiz clears partial progress', () async {
@@ -108,23 +129,23 @@ void main() {
       correct: 1,
       total: 7,
       selections: [3],
+      locale: 'en',
     );
 
     final progress = await DatabaseService.getAllLearningProgress();
     final row = progress['choking']!;
-    expect(row['is_completed'], 1,
-        reason: 'an abandoned retake must not erase the completed badge');
+    expect(
+      row['is_completed'],
+      1,
+      reason: 'an abandoned retake must not erase the completed badge',
+    );
     expect(row['best_score'], 5);
     expect(row['attempts'], 1);
     expect(row['partial_answered'], 1);
   });
 
   test('learning completions never touch the incident log', () async {
-    await DatabaseService.recordLearningCompletion(
-      'burns',
-      score: 4,
-      total: 5,
-    );
+    await DatabaseService.recordLearningCompletion('burns', score: 4, total: 5);
     final incidents = await DatabaseService.getIncidentLog();
     expect(incidents, isEmpty);
   });

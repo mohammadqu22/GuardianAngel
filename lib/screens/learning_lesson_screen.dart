@@ -95,26 +95,25 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
       _resetQuizState();
     });
 
-    final Map<String, dynamic> json;
-    try {
-      json = await ProtocolLoader.load(widget.emergencyId, localeCode);
-    } on ProtocolLoadException {
+    final result = await ProtocolLoader.tryLoad(widget.emergencyId, localeCode);
+    final error = result.error;
+    if (error != null) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorFailed;
-        _loading = false;
-      });
-      return;
-    } on ProtocolFormatException {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
+        _errorMessage = switch (error) {
+          ProtocolLoadError.failed => AppLocalizations.of(
+            context,
+          )!.stepErrorFailed,
+          ProtocolLoadError.invalid => AppLocalizations.of(
+            context,
+          )!.stepErrorInvalid,
+        };
         _loading = false;
       });
       return;
     }
 
-    final steps = json['steps'] as List;
+    final steps = result.json!['steps'] as List;
     final questions = QuizGenerator.generate(widget.emergencyId, [
       for (final step in steps)
         (
@@ -122,7 +121,7 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
           instruction: (step['instruction'] as String?) ?? '',
         ),
     ]);
-    final resume = await _loadResumeState(questions);
+    final resume = await _loadResumeState(questions, localeCode);
 
     if (!mounted) return;
     setState(() {
@@ -139,9 +138,11 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
   /// Restores an abandoned quiz run so an "In progress" card reopens straight
   /// into the quiz at the first unanswered question. Returns null when there
   /// is nothing valid to resume (not started, already completed, or the
-  /// stored run no longer matches the generated quiz).
+  /// stored run no longer matches the generated quiz — including a run made
+  /// under a different locale, whose option lists may differ).
   Future<({List<int?> selections, int frontier})?> _loadResumeState(
     List<QuizQuestion> questions,
+    String localeCode,
   ) async {
     try {
       final progress = await DatabaseService.getAllLearningProgress();
@@ -151,7 +152,13 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
 
       final stored = row['partial_selections_json'] as String?;
       if (stored == null) return null;
-      var decoded = (jsonDecode(stored) as List).cast<int>();
+      final payload = jsonDecode(stored);
+      if (payload is! Map<String, dynamic>) return null;
+      // Options are built from localized titles; picks made in another
+      // language could map onto reordered options without failing the
+      // bounds checks below, so a locale mismatch discards the run.
+      if (payload['locale'] != localeCode) return null;
+      var decoded = (payload['picks'] as List).cast<int>();
       if (decoded.isEmpty || decoded.length > questions.length) return null;
       // If every question was answered but the quiz never finished, reopen on
       // the last question with its answer cleared so there is a next action.
@@ -214,15 +221,9 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
     TtsService.instance.speak(
       widget.emergencyId,
       step['step'] as int,
-      _ttsLangCode(_loadedLocale ?? 'en'),
+      TtsService.langCodeFor(_loadedLocale ?? 'en'),
     );
   }
-
-  static String _ttsLangCode(String locale) => switch (locale) {
-    'ar' => 'ar-SA',
-    'he' => 'he-IL',
-    _ => 'en-US',
-  };
 
   @override
   void dispose() {
@@ -250,6 +251,7 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
           for (final selection in _selections)
             if (selection != null) selection,
         ],
+        locale: _loadedLocale ?? 'en',
       );
     } catch (_) {
       // Progress is a nicety — the quiz keeps working without it.
@@ -441,7 +443,10 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             child: Image.asset(
                               step['image'] ??
-                                  'assets/images/${widget.emergencyId}/step_${_currentStep + 1}.png',
+                                  ProtocolLoader.stepImagePath(
+                                    widget.emergencyId,
+                                    _currentStep + 1,
+                                  ),
                               height: 220,
                               width: double.infinity,
                               fit: BoxFit.contain,
@@ -823,12 +828,6 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
 
   // ── Result phase ─────────────────────────────────────────
 
-  static Color medalColor(QuizMedal medal) => switch (medal) {
-    QuizMedal.gold => AppColors.medalGold,
-    QuizMedal.silver => AppColors.medalSilver,
-    QuizMedal.bronze => AppColors.medalBronze,
-  };
-
   /// The localized prompt a question was asked with — shared by the quiz
   /// phase and the review section so the review shows the original question.
   static String _questionPrompt(AppLocalizations l10n, QuizQuestion question) =>
@@ -971,7 +970,10 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   child: Image.asset(
                     step['image'] ??
-                        'assets/images/${widget.emergencyId}/step_$stepNumber.png',
+                        ProtocolLoader.stepImagePath(
+                          widget.emergencyId,
+                          stepNumber,
+                        ),
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.contain,
@@ -1008,7 +1010,7 @@ class _LearningLessonScreenState extends State<LearningLessonScreen> {
     final cs = theme.colorScheme;
     final total = _questions.length;
     final medal = QuizMedal.of(_score, total);
-    final accent = medalColor(medal);
+    final accent = medal.color;
     final medalLabel = switch (medal) {
       QuizMedal.gold => l10n.quizMedalGold,
       QuizMedal.silver => l10n.quizMedalSilver,

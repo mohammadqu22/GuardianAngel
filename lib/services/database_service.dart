@@ -311,13 +311,16 @@ class DatabaseService {
   /// Saves how far an unfinished quiz run got, without touching completion
   /// data, so an abandoned quiz still shows progress on the learning card and
   /// can be resumed exactly where it stopped. [selections] holds the chosen
-  /// option index per answered question, in question order.
+  /// option index per answered question, in question order. [locale] tags the
+  /// run: quiz options are built from localized titles, so selections are
+  /// only meaningful in the language they were made in.
   static Future<void> recordQuizPartialProgress(
     String emergencyType, {
     required int answered,
     required int correct,
     required int total,
     required List<int> selections,
+    required String locale,
   }) async {
     final db = await database;
     final existing = await db.query(
@@ -332,7 +335,10 @@ class DatabaseService {
       'partial_answered': answered,
       'partial_correct': correct,
       'partial_total': total,
-      'partial_selections_json': jsonEncode(selections),
+      'partial_selections_json': jsonEncode({
+        'locale': locale,
+        'picks': selections,
+      }),
     };
     await db.insert(
       'Learning_Progress',

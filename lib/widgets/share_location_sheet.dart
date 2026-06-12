@@ -9,10 +9,7 @@ import '../services/location_service.dart';
 class ShareLocationSheet {
   /// Fetches the current location, then shows a bottom sheet with three
   /// share options: WhatsApp, SMS, and Copy to clipboard.
-  static Future<void> show(
-    BuildContext context, {
-    Color? accentColor,
-  }) async {
+  static Future<void> show(BuildContext context, {Color? accentColor}) async {
     final l10n = AppLocalizations.of(context)!;
 
     // Show a loading dialog while GPS resolves.
@@ -54,9 +51,9 @@ class ShareLocationSheet {
 
     if (position == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.settingsLocationFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.settingsLocationFailed)));
       }
       return;
     }

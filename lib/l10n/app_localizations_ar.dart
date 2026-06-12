@@ -18,6 +18,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeSearchHint => 'البحث عن طارئ...';
 
   @override
+  String get homeSearchHintLearn => 'البحث في الدروس...';
+
+  @override
   String get homeDictationStartTooltip => 'البحث بالصوت';
 
   @override
@@ -55,6 +58,129 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get homeNearbyMedicalSubtitle => 'مستشفيات وصيدليات وعيادات قريبة';
+
+  @override
+  String get homeModeEmergency => 'طوارئ';
+
+  @override
+  String get homeModeLearn => 'تعلّم';
+
+  @override
+  String get homeLearnTitle => 'التدرب على الإسعافات الأولية';
+
+  @override
+  String get learnNotStarted => 'لم يبدأ بعد';
+
+  @override
+  String get learnCompleted => 'مكتمل';
+
+  @override
+  String learnBestScore(int score, int total) {
+    return 'أفضل نتيجة: $score/$total';
+  }
+
+  @override
+  String get learnStartQuiz => 'ابدأ الاختبار';
+
+  @override
+  String get learnGoToQuiz => 'الانتقال إلى الاختبار';
+
+  @override
+  String get learnReviewLesson => 'مراجعة الدرس';
+
+  @override
+  String get learnInProgress => 'قيد التقدم';
+
+  @override
+  String learnAnswered(int answered, int total) {
+    return 'تمت الإجابة على $answered من $total';
+  }
+
+  @override
+  String get learnListen => 'الاستماع إلى هذه الخطوة';
+
+  @override
+  String get quizTitle => 'اختبار';
+
+  @override
+  String quizQuestionProgress(int current, int total) {
+    return 'السؤال $current من $total';
+  }
+
+  @override
+  String quizQuestionWhichStep(int number) {
+    return 'أي من هذه هي الخطوة رقم $number؟';
+  }
+
+  @override
+  String get quizNext => 'التالي';
+
+  @override
+  String get quizFinish => 'إنهاء';
+
+  @override
+  String learnSummary(int completed, int total) {
+    return 'اكتمل $completed من $total دروس';
+  }
+
+  @override
+  String quizQuestionAfter(String title) {
+    return 'أي خطوة تأتي مباشرة بعد: \"$title\"؟';
+  }
+
+  @override
+  String get quizQuestionInstruction => 'إلى أي خطوة تنتمي هذه التعليمات؟';
+
+  @override
+  String get quizCorrect => 'إجابة صحيحة!';
+
+  @override
+  String get quizWrong => 'ليست الإجابة الصحيحة';
+
+  @override
+  String get quizFromProtocol => 'من البروتوكول:';
+
+  @override
+  String get quizReviewTitle => 'مراجعة أخطائك';
+
+  @override
+  String get quizReviewHint =>
+      'اضغط على أي عنصر للعودة إلى تلك الخطوة في البروتوكول.';
+
+  @override
+  String quizYourAnswer(String title) {
+    return 'إجابتك: $title';
+  }
+
+  @override
+  String quizCorrectAnswer(String title) {
+    return 'الإجابة الصحيحة: $title';
+  }
+
+  @override
+  String get quizMedalGold => 'ذهبية';
+
+  @override
+  String get quizMedalSilver => 'فضية';
+
+  @override
+  String get quizMedalBronze => 'برونزية';
+
+  @override
+  String quizAttempt(int number) {
+    return 'المحاولة $number';
+  }
+
+  @override
+  String get quizResultTitle => 'اكتمل الاختبار';
+
+  @override
+  String quizResultScore(int score, int total) {
+    return 'أجبت بشكل صحيح على $score من أصل $total أسئلة.';
+  }
+
+  @override
+  String get quizRetake => 'إعادة الاختبار';
 
   @override
   String get emergencyChoking => 'اختناق';

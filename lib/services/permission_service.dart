@@ -9,10 +9,7 @@ class PermissionService {
         // On iOS, only request location (phone permission doesn't exist)
         await Permission.location.request();
       } else {
-        await [
-          Permission.phone,
-          Permission.location,
-        ].request();
+        await [Permission.phone, Permission.location].request();
       }
     } catch (e) {
       // Silently handle — permissions will be requested when needed

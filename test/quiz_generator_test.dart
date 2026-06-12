@@ -43,14 +43,23 @@ void main() {
 
     for (final q in questions) {
       expect(q.options.length, lessThanOrEqualTo(QuizGenerator.maxOptions));
-      expect(q.options.toSet().length, q.options.length,
-          reason: 'options must not repeat');
+      expect(
+        q.options.toSet().length,
+        q.options.length,
+        reason: 'options must not repeat',
+      );
       for (final option in q.options) {
-        expect(titles, contains(option),
-            reason: 'every option must be an existing step title');
+        expect(
+          titles,
+          contains(option),
+          reason: 'every option must be an existing step title',
+        );
       }
-      expect(q.correctTitle, titles[q.stepNumber - 1],
-          reason: 'correct option must be the asked-about step title');
+      expect(
+        q.correctTitle,
+        titles[q.stepNumber - 1],
+        reason: 'correct option must be the asked-about step title',
+      );
     }
   });
 
@@ -69,14 +78,23 @@ void main() {
           expect(q.anchorTitle, isNull);
           expect(q.instruction, isNull);
         case QuizQuestionType.comesAfter:
-          expect(q.anchorTitle, titles[q.stepNumber - 2],
-              reason: 'anchor must be the step right before the answer');
+          expect(
+            q.anchorTitle,
+            titles[q.stepNumber - 2],
+            reason: 'anchor must be the step right before the answer',
+          );
         case QuizQuestionType.instructionMatch:
-          expect(q.instruction, steps[q.stepNumber - 1].instruction,
-              reason: 'prompt instruction must belong to the answer step');
+          expect(
+            q.instruction,
+            steps[q.stepNumber - 1].instruction,
+            reason: 'prompt instruction must belong to the answer step',
+          );
       }
-      expect(q.reinforcement, steps[q.stepNumber - 1].instruction,
-          reason: 'reinforcement must quote the answer step instruction');
+      expect(
+        q.reinforcement,
+        steps[q.stepNumber - 1].instruction,
+        reason: 'reinforcement must quote the answer step instruction',
+      );
     }
   });
 
@@ -85,8 +103,11 @@ void main() {
       final questions = QuizGenerator.generate(id, steps);
       for (final q in questions) {
         if (q.type == QuizQuestionType.comesAfter) {
-          expect(q.options, isNot(contains(q.anchorTitle)),
-              reason: 'the step quoted in the question is not a useful option');
+          expect(
+            q.options,
+            isNot(contains(q.anchorTitle)),
+            reason: 'the step quoted in the question is not a useful option',
+          );
         }
       }
     }
@@ -99,8 +120,11 @@ void main() {
       for (final option in q.options) {
         if (option == q.correctTitle) continue;
         final optionIdx = titles.indexOf(option);
-        expect((optionIdx - correctIdx).abs(), lessThanOrEqualTo(3),
-            reason: 'plausible distractors sit near the correct step');
+        expect(
+          (optionIdx - correctIdx).abs(),
+          lessThanOrEqualTo(3),
+          reason: 'plausible distractors sit near the correct step',
+        );
       }
     }
   });
@@ -113,18 +137,23 @@ void main() {
     final questions = QuizGenerator.generate('choking', giveawaySteps);
     expect(questions, isNotEmpty);
     for (final q in questions) {
-      expect(q.type, isNot(QuizQuestionType.instructionMatch),
-          reason: 'an instruction containing its own title gives the answer away');
+      expect(
+        q.type,
+        isNot(QuizQuestionType.instructionMatch),
+        reason: 'an instruction containing its own title gives the answer away',
+      );
     }
   });
 
   test('different protocols get different question order', () {
     final a = QuizGenerator.generate('choking', steps);
     final b = QuizGenerator.generate('bleeding', steps);
-    final aShape =
-        [for (final q in a) '${q.stepNumber}:${q.options.join('|')}'].join();
-    final bShape =
-        [for (final q in b) '${q.stepNumber}:${q.options.join('|')}'].join();
+    final aShape = [
+      for (final q in a) '${q.stepNumber}:${q.options.join('|')}',
+    ].join();
+    final bShape = [
+      for (final q in b) '${q.stepNumber}:${q.options.join('|')}',
+    ].join();
     expect(aShape, isNot(bShape));
   });
 

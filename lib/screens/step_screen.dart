@@ -81,7 +81,7 @@ class _StepScreenState extends State<StepScreen> {
         TtsService.instance.speak(
           widget.emergencyId,
           _steps[0]['step'] as int,
-          _ttsLangCode(_loadedLocale ?? 'en'),
+          TtsService.langCodeFor(_loadedLocale ?? 'en'),
         );
       }
     });
@@ -112,24 +112,24 @@ class _StepScreenState extends State<StepScreen> {
       _stepDurations = [];
     });
 
-    final Map<String, dynamic> json;
-    try {
-      json = await ProtocolLoader.load(widget.emergencyId, localeCode);
-    } on ProtocolLoadException {
+    final result = await ProtocolLoader.tryLoad(widget.emergencyId, localeCode);
+    final error = result.error;
+    if (error != null) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorFailed;
-        _loading = false;
-      });
-      return;
-    } on ProtocolFormatException {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
+        _errorMessage = switch (error) {
+          ProtocolLoadError.failed => AppLocalizations.of(
+            context,
+          )!.stepErrorFailed,
+          ProtocolLoadError.invalid => AppLocalizations.of(
+            context,
+          )!.stepErrorInvalid,
+        };
         _loading = false;
       });
       return;
     }
+    final json = result.json!;
     final steps = json['steps'] as List;
     if (!mounted) return;
     setState(() {
@@ -149,7 +149,7 @@ class _StepScreenState extends State<StepScreen> {
       TtsService.instance.speak(
         widget.emergencyId,
         steps[0]['step'] as int,
-        _ttsLangCode(_loadedLocale ?? 'en'),
+        TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
     }
   }
@@ -206,7 +206,7 @@ class _StepScreenState extends State<StepScreen> {
       TtsService.instance.speak(
         widget.emergencyId,
         step['step'] as int,
-        _ttsLangCode(_loadedLocale ?? 'en'),
+        TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
     }
   }
@@ -264,17 +264,6 @@ class _StepScreenState extends State<StepScreen> {
       );
     } catch (_) {
       // Progress logging should never block the emergency instructions.
-    }
-  }
-
-  static String _ttsLangCode(String locale) {
-    switch (locale) {
-      case 'ar':
-        return 'ar-SA';
-      case 'he':
-        return 'he-IL';
-      default:
-        return 'en-US';
     }
   }
 
@@ -455,7 +444,10 @@ class _StepScreenState extends State<StepScreen> {
                                   ),
                                   child: Image.asset(
                                     step['image'] ??
-                                        'assets/images/${widget.emergencyId}/step_${_currentStep + 1}.png',
+                                        ProtocolLoader.stepImagePath(
+                                          widget.emergencyId,
+                                          _currentStep + 1,
+                                        ),
                                     height: 240,
                                     width: double.infinity,
                                     fit: BoxFit.contain,
@@ -665,7 +657,10 @@ class _StepScreenState extends State<StepScreen> {
             padding: const EdgeInsets.all(32),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: (constraints.maxHeight - 64).clamp(0.0, double.infinity),
+                minHeight: (constraints.maxHeight - 64).clamp(
+                  0.0,
+                  double.infinity,
+                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

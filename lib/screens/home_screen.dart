@@ -926,12 +926,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  static Color _medalColor(QuizMedal medal) => switch (medal) {
-    QuizMedal.gold => AppColors.medalGold,
-    QuizMedal.silver => AppColors.medalSilver,
-    QuizMedal.bronze => AppColors.medalBronze,
-  };
-
   Widget _buildLearningSummary(
     AppLocalizations l10n,
     List<Map<String, dynamic>> allEmergencies,
@@ -1065,7 +1059,7 @@ class _HomeScreenState extends State<HomeScreen>
                           : Icons.radio_button_unchecked,
                       size: 16,
                       color: medal != null
-                          ? _medalColor(medal)
+                          ? medal.color
                           : (completed || inProgress)
                           ? color
                           : cs.outline,

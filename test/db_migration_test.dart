@@ -78,28 +78,40 @@ void main() {
     await v4.close();
   });
 
-  test('v4 database upgrades to the current version keeping progress', () async {
-    // First DatabaseService access opens the v4 file and runs the migration.
-    final progress = await DatabaseService.getAllLearningProgress();
-    final row = progress['cpr']!;
-    expect(row['best_score'], 4);
-    expect(row['attempts'], 0, reason: 'migrated rows start at 0 attempts');
-    expect(row['last_score'], isNull);
-    expect(row['partial_answered'], isNull,
-        reason: 'v6 partial-progress columns must exist after migration');
-    expect(row['partial_selections_json'], isNull,
-        reason: 'v7 resume column must exist after migration');
+  test(
+    'v4 database upgrades to the current version keeping progress',
+    () async {
+      // First DatabaseService access opens the v4 file and runs the migration.
+      final progress = await DatabaseService.getAllLearningProgress();
+      final row = progress['cpr']!;
+      expect(row['best_score'], 4);
+      expect(row['attempts'], 0, reason: 'migrated rows start at 0 attempts');
+      expect(row['last_score'], isNull);
+      expect(
+        row['partial_answered'],
+        isNull,
+        reason: 'v6 partial-progress columns must exist after migration',
+      );
+      expect(
+        row['partial_selections_json'],
+        isNull,
+        reason: 'v7 resume column must exist after migration',
+      );
 
-    final attempt = await DatabaseService.recordLearningCompletion(
-      'cpr',
-      score: 2,
-      total: 8,
-    );
-    expect(attempt, 1);
+      final attempt = await DatabaseService.recordLearningCompletion(
+        'cpr',
+        score: 2,
+        total: 8,
+      );
+      expect(attempt, 1);
 
-    final updated = await DatabaseService.getAllLearningProgress();
-    expect(updated['cpr']!['best_score'], 4,
-        reason: 'pre-migration best score must survive');
-    expect(updated['cpr']!['last_score'], 2);
-  });
+      final updated = await DatabaseService.getAllLearningProgress();
+      expect(
+        updated['cpr']!['best_score'],
+        4,
+        reason: 'pre-migration best score must survive',
+      );
+      expect(updated['cpr']!['last_score'], 2);
+    },
+  );
 }

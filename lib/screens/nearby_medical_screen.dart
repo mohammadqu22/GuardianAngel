@@ -267,6 +267,9 @@ class _MedicalSearchCard extends StatelessWidget {
                   height: 48,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.medium,
+                  // Keep the card usable if an icon asset fails to load.
+                  errorBuilder: (context, error, stackTrace) =>
+                      Icon(Icons.local_hospital_outlined, color: color),
                 ),
               ),
               const SizedBox(width: 14),

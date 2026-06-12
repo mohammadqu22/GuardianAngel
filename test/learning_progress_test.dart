@@ -6,6 +6,8 @@ import 'package:guardian_angel/services/database_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+// Each test below is self-contained (its own emergency id, full setup inside
+// the test body), so any of them can run in isolation via --plain-name.
 void main() {
   setUpAll(() async {
     sqfliteFfiInit();
@@ -26,7 +28,7 @@ void main() {
     expect(progress, isEmpty);
   });
 
-  test('recording a completion stores score and completion flag', () async {
+  test('completions store score and keep the best across attempts', () async {
     final attempt = await DatabaseService.recordLearningCompletion(
       'cpr',
       score: 3,
@@ -34,7 +36,7 @@ void main() {
     );
     expect(attempt, 1);
 
-    final progress = await DatabaseService.getAllLearningProgress();
+    var progress = await DatabaseService.getAllLearningProgress();
     expect(progress.keys, contains('cpr'));
     final row = progress['cpr']!;
     expect(row['is_completed'], 1);
@@ -43,32 +45,29 @@ void main() {
     expect(row['quiz_total'], 5);
     expect(row['attempts'], 1);
     expect(row['completed_at'], isNotNull);
-  });
 
-  test('best score is kept across runs while attempts accumulate', () async {
-    final attempt = await DatabaseService.recordLearningCompletion(
+    // A worse retake must not lower the best score.
+    final retake = await DatabaseService.recordLearningCompletion(
       'cpr',
       score: 2,
       total: 5,
     );
-    expect(attempt, 2);
-
-    var progress = await DatabaseService.getAllLearningProgress();
-    expect(
-      progress['cpr']!['best_score'],
-      3,
-      reason: 'a worse retake must not lower the best score',
-    );
+    expect(retake, 2);
+    progress = await DatabaseService.getAllLearningProgress();
+    expect(progress['cpr']!['best_score'], 3);
     expect(progress['cpr']!['last_score'], 2);
     expect(progress['cpr']!['attempts'], 2);
 
+    // A better retake raises it.
     await DatabaseService.recordLearningCompletion('cpr', score: 5, total: 5);
     progress = await DatabaseService.getAllLearningProgress();
     expect(progress['cpr']!['best_score'], 5);
     expect(progress['cpr']!['attempts'], 3);
   });
 
-  test('abandoned quiz runs record partial progress', () async {
+  test('partial progress lifecycle: recorded, cleared, then kept alongside '
+      'completion data on an abandoned retake', () async {
+    // Abandoned first run records locale-tagged partial progress.
     await DatabaseService.recordQuizPartialProgress(
       'choking',
       answered: 3,
@@ -78,8 +77,8 @@ void main() {
       locale: 'he',
     );
 
-    final progress = await DatabaseService.getAllLearningProgress();
-    final row = progress['choking']!;
+    var progress = await DatabaseService.getAllLearningProgress();
+    var row = progress['choking']!;
     expect(
       row['is_completed'],
       0,
@@ -103,26 +102,23 @@ void main() {
       [0, 2, 1],
       reason: 'per-question picks are stored so the quiz can resume',
     );
-  });
 
-  test('finishing the quiz clears partial progress', () async {
+    // Finishing the quiz clears the partial state.
     await DatabaseService.recordLearningCompletion(
       'choking',
       score: 5,
       total: 7,
     );
-
-    final progress = await DatabaseService.getAllLearningProgress();
-    final row = progress['choking']!;
+    progress = await DatabaseService.getAllLearningProgress();
+    row = progress['choking']!;
     expect(row['is_completed'], 1);
     expect(row['best_score'], 5);
     expect(row['partial_answered'], isNull);
     expect(row['partial_correct'], isNull);
     expect(row['partial_total'], isNull);
     expect(row['partial_selections_json'], isNull);
-  });
 
-  test('partial progress after completion keeps completion data', () async {
+    // An abandoned retake keeps the completion data intact.
     await DatabaseService.recordQuizPartialProgress(
       'choking',
       answered: 1,
@@ -131,9 +127,8 @@ void main() {
       selections: [3],
       locale: 'en',
     );
-
-    final progress = await DatabaseService.getAllLearningProgress();
-    final row = progress['choking']!;
+    progress = await DatabaseService.getAllLearningProgress();
+    row = progress['choking']!;
     expect(
       row['is_completed'],
       1,

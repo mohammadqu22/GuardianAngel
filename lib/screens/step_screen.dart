@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_theme.dart';
 import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
+import '../core/text_normalization.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/protocol_loader.dart';
 import '../services/tts_service.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+
 
 class StepScreen extends StatefulWidget {
   final String emergencyId;
@@ -47,6 +52,66 @@ class _StepScreenState extends State<StepScreen> {
   DateTime? _stepStartedAt;
   List<int> _stepDurations = [];
   bool _locationSharing = false; // guard against double-tap on location button
+  // ── Hands-free state ──
+  final SpeechToText _handsFree = SpeechToText();
+  bool _handsFreeEnabled = false;
+  bool _handsFreeListening = false;
+  bool _handsFreeReady = false;
+  // Global Free Mode setting captured at load; used to re-honor the setting on
+  // protocol restart instead of forcing it off.
+  bool _freeModeDefault = true;
+  // Re-entrancy guard: multiple restart paths (onStatus, onError, onComplete)
+  // can fire near-simultaneously — only one start sequence runs at a time.
+  bool _handsFreeStarting = false;
+  // Watchdog that restarts the recognizer if it ever stops while Free Mode is
+  // still on — a reliable backstop for whatever lifecycle edge the callback
+  // re-arms miss.
+  Timer? _handsFreeWatchdog;
+  // Guards against acting on the same command twice within one listen session
+  // (partial result, then final result of the same phrase).
+  bool _commandActedThisSession = false;
+  // When narration started. The watchdog clears a stale _narrating that never
+  // got an onComplete (e.g. playback preempted by stop()), so the mic can't
+  // latch closed forever.
+  DateTime? _narrationStartedAt;
+
+  // ── Command vocabularies (normalized at match time) ──
+  // English includes common mis-recognitions; Arabic includes MSA + dialectal
+  // forms and frequent recognizer variants, since on-device Arabic STT is noisy.
+  static const _nextWords = <String>[
+    // English
+    'next', 'nex', 'nets', 'neck', 'text',
+    'continue', 'move on', 'go ahead', 'forward', 'go forward',
+    'proceed', 'okay', 'ok', 'done', 'yes',
+    // Hebrew
+    'הבא', 'המשך', 'קדימה', 'כן',
+    // Arabic (MSA + dialect + variants)
+    'التالي', 'تالي', 'التالية', 'استمر', 'كمل', 'للأمام', 'امشي', 'يلا',
+    'قدام', 'روح',
+  ];
+
+  static const _previousWords = <String>[
+    // English
+    'previous', 'prev', 'back', 'go back', 'before',
+    'last', 'return', 'undo',
+    // Hebrew
+    'הקודם', 'אחורה', 'חזור',
+    // Arabic (MSA + dialect + variants)
+    'السابق', 'سابق', 'ارجع', 'رجع', 'رجوع', 'للخلف', 'وراء', 'ورا',
+  ];
+
+  // Normalized once at class load — the matcher runs on every speech result
+  // (including streaming partials), so don't re-normalize the constants each
+  // time.
+  static final List<String> _nextWordsNorm =
+      _nextWords.map(normalizeForMatch).toList(growable: false);
+  static final List<String> _previousWordsNorm =
+      _previousWords.map(normalizeForMatch).toList(growable: false);
+  // True while a step is being narrated. The mic is muted during narration so
+  // the recognizer doesn't transcribe the app's own voice and trigger false
+  // Next/Back commands; listening resumes when narration completes.
+  bool _narrating = false;
+  StreamSubscription<void>? _ttsCompleteSub;
 
   void _checkScrollable() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,6 +124,39 @@ class _StepScreenState extends State<StepScreen> {
   @override
   void initState() {
     super.initState();
+    // When a step finishes narrating, re-open the mic for the next command.
+    _ttsCompleteSub = TtsService.instance.onComplete.listen((_) {
+      if (!mounted) return;
+      _narrating = false;
+      _narrationStartedAt = null;
+      // Audio finished — open the mic for Free Mode (if enabled).
+      _maybeStartHandsFree();
+    });
+    // Backstop: every couple of seconds, if Free Mode is on but the recognizer
+    // has stopped (silence timeout, dropped session, etc.), restart it — and
+    // keep the UI "listening" flag honest with the real recognizer state.
+    _handsFreeWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) return;
+      // Clear a stale narration flag that never received an onComplete (e.g.
+      // playback preempted by stop()), so the mic can't latch closed forever.
+      if (_narrating &&
+          _narrationStartedAt != null &&
+          DateTime.now().difference(_narrationStartedAt!).inSeconds > 30) {
+        _narrating = false;
+        _narrationStartedAt = null;
+      }
+      final reallyListening = _handsFree.isListening;
+      if (_handsFreeListening != reallyListening && !_handsFreeStarting) {
+        setState(() => _handsFreeListening = reallyListening);
+      }
+      if (_handsFreeEnabled &&
+          !_completed &&
+          !_narrating &&
+          !_handsFreeStarting &&
+          !reallyListening) {
+        _startHandsFreeListening();
+      }
+    });
     _cardScrollController.addListener(() {
       final atBottom =
           _cardScrollController.offset >=
@@ -70,20 +168,32 @@ class _StepScreenState extends State<StepScreen> {
     });
     SharedPreferences.getInstance().then((prefs) {
       if (!mounted) return;
-      final enabled = prefs.getBool('tts_enabled') ?? true;
+      final ttsEnabled = prefs.getBool('tts_enabled') ?? true;
+      // Free Mode follows the global setting (default on) each time a protocol
+      // opens. Manual toggles inside the protocol change only this session and
+      // never write back here, so the next protocol honors the setting again.
+      final freeMode = prefs.getBool('free_mode_enabled') ?? true;
+      _freeModeDefault = freeMode;
       setState(() {
-        _ttsEnabled = enabled;
+        _ttsEnabled = ttsEnabled;
         _ttsKnown = true;
+        _handsFreeEnabled = freeMode;
       });
       // If the protocol finished loading before the pref was known,
       // speak the first step now. Otherwise _loadProtocol handles it.
-      if (enabled && _steps.isNotEmpty) {
+      if (ttsEnabled && _steps.isNotEmpty) {
+        _narrating = true;
+      _narrationStartedAt = DateTime.now();
         TtsService.instance.speak(
           widget.emergencyId,
           _steps[0]['step'] as int,
           TtsService.langCodeFor(_loadedLocale ?? 'en'),
         );
       }
+      // Free Mode stays "ready" while the first step narrates; the mic only
+      // opens when nothing is playing (e.g. TTS off). When TTS is on, the
+      // onComplete handler opens the mic once the audio finishes.
+      _maybeStartHandsFree();
     });
   }
 
@@ -146,15 +256,20 @@ class _StepScreenState extends State<StepScreen> {
     // Speak the first step only if the tts_enabled pref is already known.
     // If it hasn't loaded yet, initState's callback will speak once it resolves.
     if (_ttsKnown && _ttsEnabled) {
+      _narrating = true;
+      _narrationStartedAt = DateTime.now();
       TtsService.instance.speak(
         widget.emergencyId,
         steps[0]['step'] as int,
         TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
     }
+    // If Free Mode is on and nothing is narrating (TTS off), open the mic now
+    // that the steps are loaded. Otherwise onComplete opens it post-narration.
+    _maybeStartHandsFree();
   }
 
-  void _nextStep() {
+  void _nextStep() async {
     if (_currentStep < _steps.length - 1) {
       _recordCurrentStepDuration();
       setState(() {
@@ -183,6 +298,8 @@ class _StepScreenState extends State<StepScreen> {
         markEnded: true,
       );
       if (_ttsEnabled) TtsService.instance.stop();
+      await _stopHandsFreeListening();
+      if (mounted) setState(() => _handsFreeEnabled = false);
     }
   }
 
@@ -199,15 +316,224 @@ class _StepScreenState extends State<StepScreen> {
       _speakCurrentStep();
     }
   }
+  void _resetProtocol() {
+    final l10n = AppLocalizations.of(context)!;
+  showDialog(
+    context: context,
+    builder: (context) {
+      final cs = Theme.of(context).colorScheme;
+      return AlertDialog(
+        backgroundColor: cs.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.restart_alt, color: widget.emergencyColor),
+            const SizedBox(width: 10),
+            Expanded(child: Text(l10n.stepRestartTitle)),
+          ],
+        ),
+        content: Text(l10n.stepRestartBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.settingsCancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _recordCurrentStepDuration();
+              setState(() {
+                _currentStep = 0;
+                _maxVisitedStep = 1;
+                _sessionStartedAt = DateTime.now();
+                _sessionEndedAt = null;
+                _stepStartedAt = DateTime.now();
+                _stepDurations = List<int>.filled(_steps.length, 0);
+                _completed = false;
+                // Restart re-honors the global Free Mode setting (like opening
+                // the protocol fresh) instead of permanently disabling it.
+                _handsFreeEnabled = _freeModeDefault;
+                _handsFreeListening = false;
+                _narrating = false;
+              });
+              _handsFree.cancel();
+              _cardScrollController.jumpTo(0);
+              _checkScrollable();
+              _updateIncidentProgress(includeTiming: true);
+              _speakCurrentStep();
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: widget.emergencyColor,
+            ),
+            child: Text(
+          l10n.stepRestartConfirm,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
+  Future<void> _toggleHandsFree() async {
+  if (_handsFreeEnabled) {
+    await _stopHandsFreeListening();
+    setState(() => _handsFreeEnabled = false);
+  } else {
+    setState(() => _handsFreeEnabled = true);
+    await _startHandsFreeListening();
+  }
+}
+
+/// Opens the mic for Free Mode only when appropriate: Free Mode on, protocol
+/// loaded, not completed, and nothing currently narrating. While a step is
+/// being read aloud, Free Mode stays in a "ready" state and the mic stays
+/// closed — the onComplete handler opens it once the audio finishes.
+void _maybeStartHandsFree() {
+  if (!_handsFreeEnabled || _completed || _narrating || _steps.isEmpty) return;
+  _startHandsFreeListening();
+}
+
+Future<void> _startHandsFreeListening() async {
+  if (_completed || !_handsFreeEnabled || _narrating) return;
+  // Only one start sequence at a time, so the several restart paths can't
+  // stomp on each other mid-init.
+  if (_handsFreeStarting) return;
+  _handsFreeStarting = true;
+  try {
+  if (!_handsFreeReady) {
+    final available = await _handsFree.initialize(
+      onStatus: (status) {
+      if (!mounted) return;
+      final listening = status == SpeechToText.listeningStatus;
+      if (_handsFreeListening != listening) {
+        setState(() => _handsFreeListening = listening);
+      }
+      // speech_to_text is single-shot on iOS: each session ends after a
+      // final result or pauseFor/listenFor elapses. Re-arm whenever a
+      // session ends so hands-free stays active across step transitions.
+      if (!listening && _handsFreeEnabled && !_completed && !_narrating) {
+        Future.delayed(
+          const Duration(milliseconds: 400),
+          _startHandsFreeListening,
+        );
+      }
+    },
+      onError: (error) {
+        if (!mounted) return;
+        // A silence/no-match timeout is normal in hands-free mode (the user
+        // simply hasn't spoken yet). iOS reports it as "permanent", but it is
+        // NOT a real failure — keep the engine alive and re-arm so Free Mode
+        // stays usable instead of dying after the audio finishes.
+        if (isTransientSpeechError(error.errorMsg)) {
+          Future.delayed(const Duration(seconds: 1), _maybeStartHandsFree);
+          return;
+        }
+        if (error.permanent) setState(() => _handsFreeReady = false);
+        if (_handsFreeEnabled && !error.permanent) {
+          Future.delayed(const Duration(seconds: 1), _maybeStartHandsFree);
+        }
+      },
+    );
+    if (!mounted) return;
+    _handsFreeReady = available;
+    if (!available) {
+      setState(() => _handsFreeEnabled = false);
+      return;
+    }
+  }
+
+  // Ensure any prior session is fully torn down before re-listening. The
+  // plugin's isListening can lag and calling listen() twice throws on iOS.
+  if (_handsFree.isListening) {
+    await _handsFree.stop();
+    await Future.delayed(const Duration(milliseconds: 150));
+  }
+  if (!mounted || _completed || !_handsFreeEnabled || _narrating) return;
+
+  final localeCode = _loadedLocale ?? 'en';
+  final localeId = switch (localeCode) {
+    'he' => 'he_IL',
+    'ar' => 'ar_SA',
+    _    => 'en_US',
+  };
+
+  // Fresh session: allow one command to act (covers partial-then-final).
+  _commandActedThisSession = false;
+  await _handsFree.listen(
+    onResult: _onHandsFreeResult,
+    listenOptions: SpeechListenOptions(
+      cancelOnError: false,
+      partialResults: true,
+      listenMode: ListenMode.dictation,
+      localeId: localeId,
+      // Commands act on the first matching partial, so these only govern the
+      // idle/silence path. Keep pauseFor short for snappy finalization; the
+      // watchdog re-arms whenever the session ends.
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 2),
+    ),
+  );
+  if (mounted) setState(() => _handsFreeListening = true);
+  } catch (_) {
+    // Recognizer busy/transient right after a session ended — retry shortly so
+    // Free Mode recovers instead of silently going dead.
+    if (mounted && _handsFreeEnabled && !_completed && !_narrating) {
+      Future.delayed(const Duration(milliseconds: 600), _maybeStartHandsFree);
+    }
+  } finally {
+    _handsFreeStarting = false;
+  }
+}
+
+Future<void> _stopHandsFreeListening() async {
+  await _handsFree.stop();
+  if (mounted) setState(() => _handsFreeListening = false);
+}
+
+void _onHandsFreeResult(SpeechRecognitionResult result) {
+  if (_commandActedThisSession) return;
+  // Act on PARTIAL results, not just the final one. iOS only finalizes after a
+  // multi-second end-of-speech silence (pauseFor), which made commands feel
+  // 5+ seconds slow. Since we match specific command keywords, the match
+  // itself is a strong signal — acting on the first matching partial removes
+  // that delay almost entirely. The per-session guard prevents double-firing.
+  final words = normalizeForMatch(result.recognizedWords);
+  if (words.isEmpty) return;
+
+  final isNext = _nextWordsNorm.any((w) => fuzzyContains(words, w));
+  final isPrev = _previousWordsNorm.any((w) => fuzzyContains(words, w));
+
+  if (isNext) {
+    _commandActedThisSession = true;
+    _nextStep();
+  } else if (isPrev) {
+    _commandActedThisSession = true;
+    _previousStep();
+  }
+  // Re-arming is handled centrally by the onStatus callback / watchdog when the
+  // session ends.
+}
   void _speakCurrentStep() {
     if (_ttsEnabled) {
+      // Mute the mic for the duration of narration so the spoken instructions
+      // aren't misheard as commands. The onComplete subscription re-opens it.
+      _narrating = true;
+      _narrationStartedAt = DateTime.now();
+      if (_handsFreeEnabled) _stopHandsFreeListening();
       final step = _steps[_currentStep];
       TtsService.instance.speak(
         widget.emergencyId,
         step['step'] as int,
         TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
+    } else {
+      // No narration to wait on — keep listening continuously if enabled.
+      _narrating = false;
+      if (_handsFreeEnabled && !_completed) _startHandsFreeListening();
     }
   }
 
@@ -277,74 +603,92 @@ class _StepScreenState extends State<StepScreen> {
         markEnded: true,
       );
     }
+    _ttsCompleteSub?.cancel();
+    _handsFreeWatchdog?.cancel();
+    _handsFree.cancel();
     _cardScrollController.dispose();
     TtsService.instance.stop();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+Widget build(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
+  final cs = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: Text(
-          widget.emergencyTitle,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+  return Scaffold(
+    backgroundColor: cs.surface,
+    appBar: AppBar(
+      title: Text(
+        widget.emergencyTitle,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
         ),
-        backgroundColor: cs.surface,
-        foregroundColor: cs.onSurface,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.location_on_outlined),
-            tooltip: l10n.settingsShareLocation,
-            // Fix #9: null disables the button while a share is in progress,
-            // preventing double-tap from opening two GPS dialogs.
-            onPressed: _locationSharing
-                ? null
-                : () async {
-                    setState(() => _locationSharing = true);
-                    try {
-                      await ShareLocationSheet.show(
-                        context,
-                        accentColor: widget.emergencyColor,
-                      );
-                    } finally {
-                      if (mounted) setState(() => _locationSharing = false);
-                    }
-                  },
-          ),
-        ],
       ),
-      body: _loading
-          ? Center(
-              child: CircularProgressIndicator(color: widget.emergencyColor),
-            )
-          : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  _errorMessage!,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  textAlign: TextAlign.center,
+      backgroundColor: cs.surface,
+      foregroundColor: cs.onSurface,
+      elevation: 0,
+      centerTitle: false,
+      actions: [
+        if (!_loading && !_completed && _steps.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.restart_alt),
+            tooltip: l10n.stepRestartTitle,
+            onPressed: _resetProtocol,
+          ),
+        if (!_loading && !_completed && _steps.isNotEmpty)
+          IconButton(
+            icon: Icon(
+              _handsFreeEnabled ? Icons.hearing : Icons.hearing_disabled,
+              color: _handsFreeEnabled ? widget.emergencyColor : null,
+            ),
+            tooltip: _handsFreeEnabled ? l10n.stepHandsFreeOn : l10n.stepHandsFreeOff,
+            onPressed: _toggleHandsFree,
+          ),
+        IconButton(
+          icon: const Icon(Icons.location_on_outlined),
+          tooltip: l10n.settingsShareLocation,
+          // Fix #9: null disables the button while a share is in progress,
+          // preventing double-tap from opening two GPS dialogs.
+          onPressed: _locationSharing
+              ? null
+              : () async {
+                  setState(() => _locationSharing = true);
+                  try {
+                    await ShareLocationSheet.show(
+                      context,
+                      accentColor: widget.emergencyColor,
+                    );
+                  } finally {
+                    if (mounted) setState(() => _locationSharing = false);
+                  }
+                },
+        ),
+      ],
+    ),
+    body: _loading
+        ? Center(
+            child: CircularProgressIndicator(color: widget.emergencyColor),
+          )
+        : _errorMessage != null
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                _errorMessage!,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
                 ),
+                textAlign: TextAlign.center,
               ),
-            )
-          : _completed
-          ? _buildCompletedScreen(l10n)
-          : _buildStepScreen(l10n),
-    );
-  }
+            ),
+          )
+        : _completed
+        ? _buildCompletedScreen(l10n)
+        : _buildStepScreen(l10n),
+  );
+}
 
   Widget _buildStepScreen(AppLocalizations l10n) {
     final step = _steps[_currentStep];
@@ -390,6 +734,45 @@ class _StepScreenState extends State<StepScreen> {
             ),
           ),
           const SizedBox(height: 32),
+          // ── Hands-free banner ──
+          if (_handsFreeEnabled) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: widget.emergencyColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: widget.emergencyColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.mic, color: widget.emergencyColor, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.stepHandsFreeBanner,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: widget.emergencyColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_handsFreeListening)
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: widget.emergencyColor,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+
 
           // ── Step card ──
           Expanded(

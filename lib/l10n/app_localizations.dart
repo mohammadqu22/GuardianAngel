@@ -616,6 +616,30 @@ abstract class AppLocalizations {
   /// **'TTS Audio Instructions'**
   String get settingsTtsSubtitle;
 
+  /// No description provided for @settingsFreeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Mode'**
+  String get settingsFreeMode;
+
+  /// No description provided for @settingsFreeModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free voice navigation'**
+  String get settingsFreeModeSubtitle;
+
+  /// No description provided for @settingsAiDetection.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Emergency Detection'**
+  String get settingsAiDetection;
+
+  /// No description provided for @settingsAiDetectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends typed text to Groq (cloud) to suggest a protocol'**
+  String get settingsAiDetectionSubtitle;
+
   /// No description provided for @settingsSectionEmergencyContact.
   ///
   /// In en, this message translates to:
@@ -1347,6 +1371,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I UNDERSTAND — CONTINUE'**
   String get disclaimerContinueBtn;
+
+  /// No description provided for @homeAiAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is analyzing...'**
+  String get homeAiAnalyzing;
+
+  /// No description provided for @homeAiDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'AI detected: {title} — tap to open'**
+  String homeAiDetected(String title);
+
+  /// No description provided for @stepRestartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart Protocol'**
+  String get stepRestartTitle;
+
+  /// No description provided for @stepRestartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will restart the guide from Step 1. Are you sure?'**
+  String get stepRestartBody;
+
+  /// No description provided for @stepRestartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get stepRestartConfirm;
+
+  /// No description provided for @stepHandsFreeBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free active — say \"Next\" or \"Back\"'**
+  String get stepHandsFreeBanner;
+
+  /// No description provided for @stepHandsFreeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free ON'**
+  String get stepHandsFreeOn;
+
+  /// No description provided for @stepHandsFreeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free OFF'**
+  String get stepHandsFreeOff;
+
+  /// No description provided for @homeAutoPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'What is your emergency? Tap to dismiss.'**
+  String get homeAutoPrompt;
 }
 
 class _AppLocalizationsDelegate

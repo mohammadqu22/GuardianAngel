@@ -53,5 +53,7 @@ macos/
 # Web (not a target platform)
 web/
 
+secrets.json
+
 # Graphify knowledge graph output — regenerate locally with: graphify update .
 graphify-out/

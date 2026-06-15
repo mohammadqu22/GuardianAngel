@@ -299,6 +299,19 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsTtsSubtitle => 'הוראות שמע TTS';
 
   @override
+  String get settingsFreeMode => 'מצב ידיים חופשיות';
+
+  @override
+  String get settingsFreeModeSubtitle => 'ניווט קולי ללא ידיים';
+
+  @override
+  String get settingsAiDetection => 'זיהוי חירום עם AI';
+
+  @override
+  String get settingsAiDetectionSubtitle =>
+      'שולח את הטקסט שהוקלד ל-Groq (ענן) כדי להציע פרוטוקול';
+
+  @override
   String get settingsSectionEmergencyContact => 'איש קשר לחירום';
 
   @override
@@ -703,4 +716,34 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get disclaimerContinueBtn => 'הבנתי — המשך';
+
+  @override
+  String get homeAiAnalyzing => 'הבינה המלאכותית מנתחת...';
+
+  @override
+  String homeAiDetected(String title) {
+    return 'זוהה על ידי AI: $title — הקש לפתיחה';
+  }
+
+  @override
+  String get stepRestartTitle => 'איפוס הפרוטוקול';
+
+  @override
+  String get stepRestartBody => 'פעולה זו תאפס את המדריך לשלב 1. האם אתה בטוח?';
+
+  @override
+  String get stepRestartConfirm => 'איפוס';
+
+  @override
+  String get stepHandsFreeBanner =>
+      'מצב ידיים חופשיות — אמור \"הבא\" או \"אחורה\"';
+
+  @override
+  String get stepHandsFreeOn => 'ידיים חופשיות פעיל';
+
+  @override
+  String get stepHandsFreeOff => 'ידיים חופשיות כבוי';
+
+  @override
+  String get homeAutoPrompt => 'מה מצב החירום שלך? הקש לביטול.';
 }

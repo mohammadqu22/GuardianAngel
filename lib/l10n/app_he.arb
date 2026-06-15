@@ -147,6 +147,10 @@
   "settingsTheme": "מצב תצוגה",
   "settingsVoiceGuidance": "הנחיה קולית",
   "settingsTtsSubtitle": "הוראות שמע TTS",
+  "settingsFreeMode": "מצב ידיים חופשיות",
+  "settingsFreeModeSubtitle": "ניווט קולי ללא ידיים",
+  "settingsAiDetection": "זיהוי חירום עם AI",
+  "settingsAiDetectionSubtitle": "שולח את הטקסט שהוקלד ל-Groq (ענן) כדי להציע פרוטוקול",
   "settingsSectionEmergencyContact": "איש קשר לחירום",
   "settingsAddContact": "הוסף איש קשר לחירום",
   "settingsAddContactSubtitle": "שמור אדם אמין להתקשרות בחירום",
@@ -273,5 +277,19 @@
   "disclaimerSource4": "מגן דוד אדום — פרוטוקולי חירום ישראליים",
   "disclaimerAcknowledge": "בהמשך, אתה מאשר שהנחיה זו אינה מחליפה שירותי חירום רפואיים ושתתקשר ל-101 במצבים רפואיים חמורים.",
   "disclaimerVersion": "Guardian Angel v1.0.0 • ממשק Clinical Sentinel",
-  "disclaimerContinueBtn": "הבנתי — המשך"
+  "disclaimerContinueBtn": "הבנתי — המשך",
+  "homeAiAnalyzing": "הבינה המלאכותית מנתחת...",
+  "homeAiDetected": "זוהה על ידי AI: {title} — הקש לפתיחה",
+  "@homeAiDetected": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "stepRestartTitle": "איפוס הפרוטוקול",
+  "stepRestartBody": "פעולה זו תאפס את המדריך לשלב 1. האם אתה בטוח?",
+  "stepRestartConfirm": "איפוס",
+  "stepHandsFreeBanner": "מצב ידיים חופשיות — אמור \"הבא\" או \"אחורה\"",
+  "stepHandsFreeOn": "ידיים חופשיות פעיל",
+  "stepHandsFreeOff": "ידיים חופשיות כבוי",
+  "homeAutoPrompt": "מה מצב החירום שלך? הקש לביטול."
 }

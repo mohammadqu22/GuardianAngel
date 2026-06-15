@@ -7,9 +7,13 @@ import 'learning_lesson_screen.dart';
 import 'nearby_medical_screen.dart';
 import 'step_screen.dart';
 import 'settings_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_theme.dart';
+import '../core/text_normalization.dart';
 import '../services/database_service.dart';
 import '../services/phone_service.dart';
+import 'dart:async';
+import '../services/ai_service.dart';
 import '../services/quiz_generator.dart';
 import '../widgets/protocol_icon.dart';
 
@@ -65,6 +69,9 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted && _searchFocused != _searchFocus.hasFocus) {
         setState(() => _searchFocused = _searchFocus.hasFocus);
       }
+      // Focusing the search field is a meaningful interaction — cancel the
+      // idle voice prompt.
+      if (_searchFocus.hasFocus) _consumeAutoPrompt();
     });
   }
 
@@ -86,8 +93,30 @@ class _HomeScreenState extends State<HomeScreen>
   bool _speechReady = false;
   bool _speechInitializing = false;
   bool _isListening = false;
+  // Intent flag: true while the user (or the auto-prompt) wants dictation to
+  // stay open, so a silence timeout re-arms the mic instead of erroring out.
+  bool _wantListening = false;
   List<LocaleName> _speechLocales = const [];
 
+    Timer? _autoPromptTimer;
+    bool _autoPromptVisible = false;
+    // Set once the user meaningfully interacts (tap, navigation, field focus).
+    // After that the idle voice prompt no longer auto-opens. Scrolling does NOT
+    // set this.
+    bool _autoPromptConsumed = false;
+    // ── AI detection state ──
+    Timer? _aiDebounceTimer;
+    // Last query actually sent to the AI, so an identical follow-up (e.g. a
+    // dictation final result matching the partial) isn't detected twice.
+    String? _lastAiQuery;
+    String? _aiSuggestedId;
+    String? _aiSuggestedTitle;
+    Color? _aiSuggestedColor;
+    bool _aiLoading = false;
+
+
+
+  
   /// Built inside build() so titles are always in the active locale.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
     {
@@ -129,26 +158,34 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final locale = Localizations.localeOf(context);
-    // When the language is switched (e.g. from Settings), the emergency titles
-    // change language, so a leftover search query no longer matches. Reset the
-    // search so the user returns to a clean home screen in the new language.
-    if (_lastLocale != null && _lastLocale != locale) {
-      _searchController.clear();
-      _searchQuery = '';
-      _resetGridScroll();
-      if (_isListening) {
-        _speech.stop();
-        _isListening = false;
-      }
+
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  final locale = Localizations.localeOf(context);
+  if (_lastLocale != null && _lastLocale != locale) {
+    _searchController.clear();
+    _searchQuery = '';
+    _resetGridScroll();
+    if (_isListening) {
+      _speech.stop();
+      _isListening = false;
     }
-    _lastLocale = locale;
+    _cancelAutoPrompt();
   }
+  // Start the timer only on the very first load
+  if (_lastLocale == null) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) _startAutoPromptTimer(l10n);
+    });
+  }
+  _lastLocale = locale;
+}
 
   @override
   void dispose() {
+    _autoPromptTimer?.cancel();
+    _aiDebounceTimer?.cancel();
     _speech.cancel();
     _gridController.dispose();
     _searchController.dispose();
@@ -156,55 +193,154 @@ class _HomeScreenState extends State<HomeScreen>
     _summaryController.dispose();
     super.dispose();
   }
+  void _startAutoPromptTimer(AppLocalizations l10n) {
+  _autoPromptTimer?.cancel();
+  _autoPromptTimer = Timer(const Duration(seconds: 7), () async {
+    // Only auto-open the mic when nothing meaningful has happened: not already
+    // consumed by a tap/navigation/focus, not listening, no query typed, the
+    // search field isn't focused, and the home screen is still the top route
+    // (so it never fires over a pushed protocol/settings screen).
+    if (!mounted ||
+        _autoPromptConsumed ||
+        _learnMode ||
+        _isListening ||
+        _searchQuery.isNotEmpty ||
+        _searchFocus.hasFocus ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    setState(() => _autoPromptVisible = true);
+    await _toggleDictation(l10n);
+  });
+}
+
+void _cancelAutoPrompt() {
+  _autoPromptTimer?.cancel();
+  _autoPromptTimer = null;
+  if (_autoPromptVisible) {
+    setState(() => _autoPromptVisible = false);
+  }
+}
+
+/// Records a meaningful user interaction (tap, navigation, field focus) and
+/// permanently disables the idle voice prompt for this session — also stopping
+/// any prompt already in progress. Scrolling must NOT call this.
+void _consumeAutoPrompt() {
+  if (_autoPromptConsumed) return;
+  _autoPromptConsumed = true;
+  _wantListening = false;
+  // cancel() (not stop()) fully aborts the session and releases the shared iOS
+  // recognizer, so a lingering home session can't time out and surface its
+  // snackbar over a pushed protocol, and the protocol's Free Mode gets a clean
+  // recognizer.
+  _speech.cancel();
+  _autoPromptTimer?.cancel();
+  _autoPromptTimer = null;
+  if (mounted && (_autoPromptVisible || _isListening)) {
+    setState(() {
+      _autoPromptVisible = false;
+      _isListening = false;
+    });
+  }
+}
+
+// Explicit user dismissal of the voice prompt: also stop the mic and clear the
+// keep-listening intent so it doesn't re-arm.
+void _dismissVoicePrompt() {
+  _wantListening = false;
+  if (_isListening) {
+    _speech.stop();
+    setState(() => _isListening = false);
+  }
+  _cancelAutoPrompt();
+}
+ 
+  void _runAiDetection(String query, AppLocalizations l10n) {
+    _aiDebounceTimer?.cancel();
+    if (query.trim().length < 4) {
+      _lastAiQuery = null;
+      if (_aiSuggestedId != null || _aiLoading) {
+        setState(() {
+          _aiSuggestedId = null;
+          _aiSuggestedTitle = null;
+          _aiSuggestedColor = null;
+          _aiLoading = false;
+        });
+      }
+      return;
+    }
+
+    // Skip if we've already detected this exact query (e.g. a dictation final
+    // result identical to the partial that already triggered detection).
+    if (query == _lastAiQuery) return;
+
+    setState(() => _aiLoading = true);
+
+    // fix: save query snapshot to guard against race conditions
+    final requestQuery = query;
+    _aiDebounceTimer = Timer(const Duration(milliseconds: 1500), () async {
+      if (!mounted || requestQuery != _searchQuery) return;
+      // Respect the AI-detection opt-out — this sends text off-device to Groq.
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('ai_detection_enabled') ?? true)) {
+        if (mounted) setState(() => _aiLoading = false);
+        return;
+      }
+      if (!mounted || requestQuery != _searchQuery) return;
+      _lastAiQuery = requestQuery;
+      final allEmergencies = _buildEmergencyList(l10n);
+      final id = await AiService.detectEmergency(requestQuery);
+      if (!mounted || requestQuery != _searchQuery) return;
+      if (id == null) {
+        // A no-match or transient failure shouldn't be cached, or re-typing the
+        // same phrase would never re-query. Clear the dedupe key so it retries.
+        _lastAiQuery = null;
+        setState(() {
+          _aiSuggestedId = null;
+          _aiSuggestedTitle = null;
+          _aiSuggestedColor = null;
+          _aiLoading = false;
+        });
+        return;
+      }
+      final match = allEmergencies.firstWhere(
+        (e) => e['id'] == id,
+        orElse: () => {},
+      );
+      if (match.isEmpty) {
+        setState(() {
+          _aiSuggestedId = null;
+          _aiLoading = false;
+        });
+        return;
+      }
+      setState(() {
+        _aiSuggestedId = id;
+        _aiSuggestedTitle = match['title'] as String;
+        _aiSuggestedColor = match['color'] as Color;
+        _aiLoading = false;
+      });
+    });
+  }
 
   /// Normalizes text for locale-tolerant search matching. Speech recognition
   /// (especially Arabic/Hebrew) can add vowel diacritics, tatweel, or
   /// bidirectional control characters and use different letter forms, so the
   /// raw dictated string may not literally equal the stored title. Stripping
   /// those and unifying common letter variants lets matches succeed.
-  static String _normalizeForSearch(String input) {
-    final buffer = StringBuffer();
-    for (var ch in input.runes) {
-      // Arabic diacritics (tashkeel) and Hebrew niqqud / cantillation marks.
-      if ((ch >= 0x0610 && ch <= 0x061A) ||
-          (ch >= 0x064B && ch <= 0x065F) ||
-          ch == 0x0670 ||
-          (ch >= 0x06D6 && ch <= 0x06ED) ||
-          ch == 0x0640 || // Arabic tatweel
-          (ch >= 0x0591 && ch <= 0x05BD) ||
-          ch == 0x05BF ||
-          ch == 0x05C1 ||
-          ch == 0x05C2 ||
-          ch == 0x05C4 ||
-          ch == 0x05C5 ||
-          ch == 0x05C7) {
-        continue;
-      }
-      // Bidirectional control characters.
-      if (ch == 0x200E ||
-          ch == 0x200F ||
-          ch == 0x061C ||
-          (ch >= 0x202A && ch <= 0x202E) ||
-          (ch >= 0x2066 && ch <= 0x2069)) {
-        continue;
-      }
-      // Unify Arabic alef variants (آ أ إ → ا) and alef-maqsura (ى → ي).
-      if (ch == 0x0622 || ch == 0x0623 || ch == 0x0625) ch = 0x0627;
-      if (ch == 0x0649) ch = 0x064A;
-      buffer.writeCharCode(ch);
-    }
-    return buffer
-        .toString()
-        .toLowerCase()
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-  }
+  static String _normalizeForSearch(String input) => normalizeForMatch(input);
 
-  void _setSearchQuery(String value) {
+  void _setSearchQuery(String value, {bool runAiDetection = true}) {
+    _cancelAutoPrompt();
     setState(() {
       _searchQuery = value;
       _resetGridScroll();
     });
+    // Only run AI emergency detection in emergency mode — learn-mode searches
+    // are lesson queries and must not be sent off-device to Groq.
+    if (runAiDetection && !_learnMode) {
+      _runAiDetection(value, AppLocalizations.of(context)!);
+    }
   }
 
   void _resetGridScroll() {
@@ -249,6 +385,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _toggleDictation(AppLocalizations l10n) async {
     if (_isListening) {
+      _wantListening = false;
       await _speech.stop();
       if (mounted) setState(() => _isListening = false);
       return;
@@ -256,10 +393,20 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (!await _ensureSpeechReady(l10n) || !mounted) return;
 
+    _wantListening = true;
+    await _beginListening(l10n);
+  }
+
+  /// Opens a recognition session. Shared by the initial mic tap/auto-prompt and
+  /// the silence-timeout re-arm so listen options stay in one place.
+  Future<void> _beginListening(AppLocalizations l10n) async {
+    if (!mounted) return;
     await _speech.listen(
       onResult: _onSpeechResult,
       listenOptions: SpeechListenOptions(
-        cancelOnError: true,
+        // We re-arm on transient errors ourselves, so don't let the plugin
+        // tear the engine down on a silence timeout.
+        cancelOnError: false,
         partialResults: true,
         listenMode: ListenMode.search,
         localeId: _localeIdFor(Localizations.localeOf(context)),
@@ -267,8 +414,22 @@ class _HomeScreenState extends State<HomeScreen>
         pauseFor: const Duration(seconds: 3),
       ),
     );
-
     if (mounted) setState(() => _isListening = true);
+  }
+
+  /// Re-opens the mic after a silence/no-match timeout so dictation keeps
+  /// waiting for the user to speak instead of surfacing a false error.
+  Future<void> _restartListening(AppLocalizations l10n) async {
+    // Let the previous session fully tear down before re-listening.
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted ||
+        !_wantListening ||
+        !_speechReady ||
+        _isListening ||
+        _searchQuery.isNotEmpty) {
+      return;
+    }
+    await _beginListening(l10n);
   }
 
   void _onSpeechResult(SpeechRecognitionResult result) {
@@ -278,7 +439,10 @@ class _HomeScreenState extends State<HomeScreen>
       text: words,
       selection: TextSelection.collapsed(offset: words.length),
     );
-    _setSearchQuery(words);
+    // We have speech now — stop re-arming. Only run AI detection on the final
+    // result so streaming partials don't fire duplicate requests.
+    if (result.finalResult) _wantListening = false;
+    _setSearchQuery(words, runAiDetection: result.finalResult);
   }
 
   void _onSpeechStatus(String status) {
@@ -290,6 +454,22 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _onSpeechError(SpeechRecognitionError error, AppLocalizations l10n) {
     if (!mounted) return;
+    final isSilenceTimeout = isTransientSpeechError(error.errorMsg);
+
+    // A silence/no-match timeout is NEVER a device failure — never show the
+    // "unavailable" snackbar or tear down the engine for it. (This also fires
+    // when a stopped/lingering session times out after the user has navigated
+    // away, which previously surfaced the snackbar over a pushed protocol.)
+    if (isSilenceTimeout) {
+      setState(() => _isListening = false);
+      // Only keep waiting if dictation is still wanted and nothing is captured.
+      if (_wantListening && _searchQuery.isEmpty) {
+        _restartListening(l10n);
+      }
+      return;
+    }
+
+    _wantListening = false;
     setState(() {
       _isListening = false;
       if (error.permanent) _speechReady = false;
@@ -336,6 +516,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     if (!mounted) return;
+    _consumeAutoPrompt();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -350,6 +531,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _openNearbyMedicalHelp() {
+    _consumeAutoPrompt();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const NearbyMedicalScreen()),
@@ -447,6 +629,7 @@ class _HomeScreenState extends State<HomeScreen>
                           IconButton(
                             tooltip: l10n.homeSettingsTooltip,
                             onPressed: () {
+                              _consumeAutoPrompt();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -491,6 +674,54 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 16),
 
+                // ── Auto prompt banner (emergency mode only) ──
+                if (!_learnMode)
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _autoPromptVisible
+                        ? GestureDetector(
+                            onTap: _dismissVoicePrompt,
+                            child: Container(
+                              key: const ValueKey('prompt'),
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: cs.primaryContainer.withValues(
+                                  alpha: 0.5,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.lg,
+                                ),
+                                border: Border.all(
+                                  color: cs.primary.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.mic, color: cs.primary, size: 20),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.homeAutoPrompt,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: cs.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                  Icon(Icons.close, color: cs.primary, size: 18),
+                                ],
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(key: ValueKey('empty')),
+                  ),
+
                 // ── Search Bar ──
                 TextField(
                   controller: _searchController,
@@ -531,6 +762,84 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
+                // ── AI suggestion banner (emergency mode only) ──
+                if (!_learnMode && _aiLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          l10n.homeAiAnalyzing,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (!_learnMode && _aiSuggestedId != null && !_aiLoading)
+                  GestureDetector(
+                    onTap: () {
+                      _openEmergency(
+                        id: _aiSuggestedId!,
+                        title: _aiSuggestedTitle!,
+                        color: _aiSuggestedColor!,
+                      );
+                      setState(() {
+                        _aiSuggestedId = null;
+                        _aiSuggestedTitle = null;
+                        _aiSuggestedColor = null;
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _aiSuggestedColor!.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(
+                          color: _aiSuggestedColor!.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            color: _aiSuggestedColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              l10n.homeAiDetected(_aiSuggestedTitle!),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: _aiSuggestedColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: _aiSuggestedColor,
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 // Both header cards (learn summary / nearby medical help)
                 // collapse in sync with grid scrolling so the protocols get
@@ -803,12 +1112,15 @@ class _HomeScreenState extends State<HomeScreen>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(26),
-              onTap: () => PhoneService.call(
-                '101',
-                context,
-                l10n.homeCallFailed,
-                duration: const Duration(seconds: 3),
-              ),
+              onTap: () {
+                _consumeAutoPrompt();
+                PhoneService.call(
+                  '101',
+                  context,
+                  l10n.homeCallFailed,
+                  duration: const Duration(seconds: 3),
+                );
+              },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

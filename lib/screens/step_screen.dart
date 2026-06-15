@@ -891,11 +891,12 @@ Widget build(BuildContext context) {
                       ],
                     ),
                   ),
-                  // Repeat button — pinned at the bottom of the card, never scrolls away
+                  // Repeat button — pinned at the bottom of the card, never scrolls away.
+                  // Routes through _speakCurrentStep (not TtsService.repeat) so it
+                  // coordinates with Free Mode: mute the mic while re-reading, then
+                  // reopen it when the audio finishes — repeatably.
                   IconButton(
-                    onPressed: _ttsEnabled
-                        ? () => TtsService.instance.repeat()
-                        : null,
+                    onPressed: _ttsEnabled ? _speakCurrentStep : null,
                     icon: Icon(
                       Icons.replay_circle_filled,
                       color: _ttsEnabled

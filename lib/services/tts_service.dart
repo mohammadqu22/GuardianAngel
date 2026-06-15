@@ -76,6 +76,14 @@ class TtsService {
     }
   }
 
+  /// Maps an app locale code to the voice language code used for audio
+  /// lookup. Single source of truth for all screens that trigger playback.
+  static String langCodeFor(String locale) => switch (locale) {
+    'ar' => 'ar-SA',
+    'he' => 'he-IL',
+    _ => 'en-US',
+  };
+
   static String _langFolder(String languageCode) {
     switch (languageCode) {
       case 'ar-SA':

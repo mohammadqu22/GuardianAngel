@@ -36,7 +36,7 @@ class _GuardianAngelAppState extends State<GuardianAngelApp> {
     // Read SharedPreferences first so disclaimer/theme/locale are always set
     // correctly even if a later service initialisation throws.
     final prefs = await SharedPreferences.getInstance();
-    final accepted  = prefs.getBool('disclaimer_accepted') ?? false;
+    final accepted = prefs.getBool('disclaimer_accepted') ?? false;
     final themePref = prefs.getString('theme_mode') ?? 'system';
     // On first launch there is no stored preference — use the device language
     // if it is one of the three supported codes, otherwise fall back to English.
@@ -66,9 +66,9 @@ class _GuardianAngelAppState extends State<GuardianAngelApp> {
     if (mounted) {
       setState(() {
         _showDisclaimer = !accepted;
-        _themeMode      = themeModeFromString(themePref);
-        _locale         = _localeFromCode(langPref);
-        _loading        = false;
+        _themeMode = themeModeFromString(themePref);
+        _locale = _localeFromCode(langPref);
+        _loading = false;
       });
     }
     PermissionService.requestAppPermissions();
@@ -76,9 +76,12 @@ class _GuardianAngelAppState extends State<GuardianAngelApp> {
 
   static Locale _localeFromCode(String code) {
     switch (code) {
-      case 'he':  return const Locale('he');
-      case 'ar':  return const Locale('ar');
-      default:    return const Locale('en');
+      case 'he':
+        return const Locale('he');
+      case 'ar':
+        return const Locale('ar');
+      default:
+        return const Locale('en');
     }
   }
 
@@ -106,14 +109,14 @@ class _GuardianAngelAppState extends State<GuardianAngelApp> {
       home: _loading
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : _showDisclaimer
-              ? DisclaimerScreen(
-                  onThemeModeChanged: _onThemeModeChanged,
-                  onLocaleChanged: _onLocaleChanged,
-                )
-              : HomeScreen(
-                  onThemeModeChanged: _onThemeModeChanged,
-                  onLocaleChanged: _onLocaleChanged,
-                ),
+          ? DisclaimerScreen(
+              onThemeModeChanged: _onThemeModeChanged,
+              onLocaleChanged: _onLocaleChanged,
+            )
+          : HomeScreen(
+              onThemeModeChanged: _onThemeModeChanged,
+              onLocaleChanged: _onLocaleChanged,
+            ),
     );
   }
 }

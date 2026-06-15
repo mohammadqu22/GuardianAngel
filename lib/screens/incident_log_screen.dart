@@ -8,6 +8,7 @@ import '../core/app_theme.dart';
 import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
 import '../services/database_service.dart';
+import '../widgets/protocol_icon.dart';
 
 class IncidentLogScreen extends StatefulWidget {
   const IncidentLogScreen({super.key});
@@ -227,29 +228,6 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
     }
   }
 
-  IconData _emergencyIcon(String emergencyType) {
-    switch (emergencyType) {
-      case 'choking':
-        return Icons.air;
-      case 'choking_infant':
-        return Icons.baby_changing_station;
-      case 'cpr':
-        return Icons.favorite;
-      case 'cpr_infant':
-        return Icons.monitor_heart;
-      case 'burns':
-        return Icons.local_fire_department;
-      case 'bleeding':
-        return Icons.water_drop;
-      case 'fractures':
-        return Icons.healing;
-      case 'seizures':
-        return Icons.warning_amber_rounded;
-      default:
-        return Icons.medical_services_outlined;
-    }
-  }
-
   Color _emergencyColor(String emergencyType) {
     switch (emergencyType) {
       case 'choking':
@@ -463,156 +441,150 @@ class _IncidentLogScreenState extends State<IncidentLogScreen> {
                     child: Theme(
                       data: theme.copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
-                          tilePadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          childrenPadding: const EdgeInsets.fromLTRB(
-                            16,
-                            0,
-                            16,
-                            16,
-                          ),
-                          leading: _selectionMode
-                              ? Checkbox(
-                                  value: isSelected,
-                                  onChanged: (_) => _toggleSelectedLog(logId),
-                                  shape: const CircleBorder(),
-                                  side: BorderSide(
-                                    color: cs.outline,
-                                    width: 1.6,
-                                  ),
-                                )
-                              : Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: emergencyColor.withValues(
-                                      alpha: 0.10,
-                                    ),
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.md,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    _emergencyIcon(emergencyType),
-                                    color: emergencyColor,
-                                  ),
-                                ),
-                          title: Text(
-                            l10n.incidentLogEntry(title),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (totalSteps > 0) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  status,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: isCompleted
-                                        ? cs.tertiary
-                                        : cs.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatTimestamp(context, timestamp),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                          children: [
-                            if (hasTimingDetails)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(14),
+                        tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        childrenPadding: const EdgeInsets.fromLTRB(
+                          16,
+                          0,
+                          16,
+                          16,
+                        ),
+                        leading: _selectionMode
+                            ? Checkbox(
+                                value: isSelected,
+                                onChanged: (_) => _toggleSelectedLog(logId),
+                                shape: const CircleBorder(),
+                                side: BorderSide(color: cs.outline, width: 1.6),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: cs.surfaceContainerHighest.withValues(
-                                    alpha: 0.35,
-                                  ),
+                                  color: emergencyColor.withValues(alpha: 0.10),
                                   borderRadius: BorderRadius.circular(
                                     AppRadius.md,
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (displayElapsedSeconds > 0) ...[
-                                      _LogDetailRow(
-                                        icon: Icons.timer_outlined,
-                                        label: l10n.incidentLogTotalTime(
-                                          formatLocalizedDuration(
-                                            context,
-                                            displayElapsedSeconds,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    if (visibleStepDurations.isNotEmpty) ...[
-                                      if (displayElapsedSeconds > 0)
-                                        const SizedBox(height: 10),
-                                      _LogDetailRow(
-                                        icon: Icons.format_list_numbered,
-                                        label: l10n.incidentLogStepTimesTitle,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ...visibleStepDurations.map(
-                                        (entry) => Padding(
-                                          padding:
-                                              const EdgeInsetsDirectional.only(
-                                                start: 28,
-                                                bottom: 6,
-                                              ),
-                                          child: _StepTimeRow(
-                                            stepNumber: entry.key,
-                                            duration: formatLocalizedDuration(
-                                              context,
-                                              entry.value,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              )
-                            else
-                              Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Text(
-                                  l10n.incidentLogNoTimingDetails,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
+                                child: ProtocolIcon(
+                                  emergencyId: emergencyType,
+                                  color: emergencyColor,
+                                  size: 30,
                                 ),
                               ),
-                            if (logId > 0 && !_selectionMode) ...[
-                              const SizedBox(height: 12),
-                              Align(
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: TextButton.icon(
-                                  onPressed: () => _deleteLog(logId),
-                                  icon: const Icon(Icons.delete_outline),
-                                  label: Text(l10n.incidentLogDeleteAction),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: cs.error,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                  ),
+                        title: Text(
+                          l10n.incidentLogEntry(title),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (totalSteps > 0) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                status,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isCompleted ? cs.tertiary : cs.primary,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatTimestamp(context, timestamp),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
+                        children: [
+                          if (hasTimingDetails)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(
+                                  alpha: 0.35,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (displayElapsedSeconds > 0) ...[
+                                    _LogDetailRow(
+                                      icon: Icons.timer_outlined,
+                                      label: l10n.incidentLogTotalTime(
+                                        formatLocalizedDuration(
+                                          context,
+                                          displayElapsedSeconds,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (visibleStepDurations.isNotEmpty) ...[
+                                    if (displayElapsedSeconds > 0)
+                                      const SizedBox(height: 10),
+                                    _LogDetailRow(
+                                      icon: Icons.format_list_numbered,
+                                      label: l10n.incidentLogStepTimesTitle,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    ...visibleStepDurations.map(
+                                      (entry) => Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                              start: 28,
+                                              bottom: 6,
+                                            ),
+                                        child: _StepTimeRow(
+                                          stepNumber: entry.key,
+                                          duration: formatLocalizedDuration(
+                                            context,
+                                            entry.value,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            )
+                          else
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Text(
+                                l10n.incidentLogNoTimingDetails,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          if (logId > 0 && !_selectionMode) ...[
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: TextButton.icon(
+                                onPressed: () => _deleteLog(logId),
+                                icon: const Icon(Icons.delete_outline),
+                                label: Text(l10n.incidentLogDeleteAction),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: cs.error,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 );

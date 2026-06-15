@@ -14,7 +14,7 @@ class DisclaimerScreen extends StatelessWidget {
   });
 
   final ValueChanged<ThemeMode> onThemeModeChanged;
-  final ValueChanged<Locale>    onLocaleChanged;
+  final ValueChanged<Locale> onLocaleChanged;
 
   Future<void> _acceptDisclaimer(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,7 +26,7 @@ class DisclaimerScreen extends StatelessWidget {
         MaterialPageRoute(
           builder: (context) => HomeScreen(
             onThemeModeChanged: onThemeModeChanged,
-            onLocaleChanged:    onLocaleChanged,
+            onLocaleChanged: onLocaleChanged,
           ),
         ),
       );
@@ -35,9 +35,9 @@ class DisclaimerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n  = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final cs    = theme.colorScheme;
+    final cs = theme.colorScheme;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -63,7 +63,11 @@ class DisclaimerScreen extends StatelessWidget {
                                 color: cs.primary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.medical_services, size: 56, color: cs.primary),
+                              child: Icon(
+                                Icons.medical_services,
+                                size: 56,
+                                color: cs.primary,
+                              ),
                             ),
                             const SizedBox(height: 20),
                             Text(
@@ -138,7 +142,11 @@ class DisclaimerScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.phone_in_talk, color: cs.primary, size: 24),
+                                Icon(
+                                  Icons.phone_in_talk,
+                                  color: cs.primary,
+                                  size: 24,
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   l10n.disclaimerEmergencyTitle,
@@ -162,13 +170,35 @@ class DisclaimerScreen extends StatelessWidget {
                       // ── Medical Sources ──
                       Text(
                         l10n.disclaimerSourcesTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      SourceItem(title: l10n.disclaimerSource1, icon: Icons.verified, iconSize: 18, bottomPadding: 10),
-                      SourceItem(title: l10n.disclaimerSource2, icon: Icons.verified, iconSize: 18, bottomPadding: 10),
-                      SourceItem(title: l10n.disclaimerSource3, icon: Icons.verified, iconSize: 18, bottomPadding: 10),
-                      SourceItem(title: l10n.disclaimerSource4, icon: Icons.verified, iconSize: 18, bottomPadding: 10),
+                      SourceItem(
+                        title: l10n.disclaimerSource1,
+                        icon: Icons.verified,
+                        iconSize: 18,
+                        bottomPadding: 10,
+                      ),
+                      SourceItem(
+                        title: l10n.disclaimerSource2,
+                        icon: Icons.verified,
+                        iconSize: 18,
+                        bottomPadding: 10,
+                      ),
+                      SourceItem(
+                        title: l10n.disclaimerSource3,
+                        icon: Icons.verified,
+                        iconSize: 18,
+                        bottomPadding: 10,
+                      ),
+                      SourceItem(
+                        title: l10n.disclaimerSource4,
+                        icon: Icons.verified,
+                        iconSize: 18,
+                        bottomPadding: 10,
+                      ),
 
                       const SizedBox(height: 24),
 
@@ -192,7 +222,9 @@ class DisclaimerScreen extends StatelessWidget {
                       Center(
                         child: Text(
                           l10n.disclaimerVersion,
-                          style: theme.textTheme.labelSmall?.copyWith(color: cs.outline),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: cs.outline,
+                          ),
                         ),
                       ),
                     ],
@@ -253,12 +285,13 @@ class DisclaimerScreen extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurface),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: cs.onSurface),
             ),
           ),
         ],
       ),
     );
   }
-
 }

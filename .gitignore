@@ -54,3 +54,6 @@ macos/
 web/
 
 secrets.json
+
+# Graphify knowledge graph output — regenerate locally with: graphify update .
+graphify-out/

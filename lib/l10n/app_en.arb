@@ -5,6 +5,7 @@
 
   "homeSelectEmergency": "Select Emergency Type",
   "homeSearchHint": "Search emergency...",
+  "homeSearchHintLearn": "Search lessons...",
   "homeDictationStartTooltip": "Search by voice",
   "homeDictationStopTooltip": "Stop voice search",
   "homeDictationUnavailable": "Voice search is unavailable on this device.",
@@ -23,6 +24,96 @@
   },
   "homeNearbyMedical": "Nearby Medical Help",
   "homeNearbyMedicalSubtitle": "Hospitals, pharmacies, and clinics nearby",
+
+  "homeModeEmergency": "Emergency",
+  "homeModeLearn": "Learn",
+  "homeLearnTitle": "Practice First Aid",
+  "learnNotStarted": "Not started",
+  "learnCompleted": "Completed",
+  "learnBestScore": "Best score: {score}/{total}",
+  "@learnBestScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnStartQuiz": "START QUIZ",
+  "learnGoToQuiz": "Go to quiz",
+  "learnReviewLesson": "Review lesson",
+  "learnInProgress": "In progress",
+  "learnAnswered": "{answered} of {total} answered",
+  "@learnAnswered": {
+    "placeholders": {
+      "answered": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnListen": "Listen to this step",
+  "quizTitle": "Quiz",
+  "quizQuestionProgress": "Question {current} of {total}",
+  "@quizQuestionProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionWhichStep": "Which of these is step {number}?",
+  "@quizQuestionWhichStep": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizNext": "NEXT",
+  "quizFinish": "FINISH",
+  "learnSummary": "{completed} of {total} lessons completed",
+  "@learnSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionAfter": "Which step comes right after: \"{title}\"?",
+  "@quizQuestionAfter": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizQuestionInstruction": "Which step does this instruction belong to?",
+  "quizCorrect": "Correct!",
+  "quizWrong": "Not quite",
+  "quizFromProtocol": "From the protocol:",
+  "quizReviewTitle": "Review your misses",
+  "quizReviewHint": "Tap an item to revisit that step of the protocol.",
+  "quizYourAnswer": "Your answer: {title}",
+  "@quizYourAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizCorrectAnswer": "Correct answer: {title}",
+  "@quizCorrectAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizMedalGold": "Gold",
+  "quizMedalSilver": "Silver",
+  "quizMedalBronze": "Bronze",
+  "quizAttempt": "Attempt {number}",
+  "@quizAttempt": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizResultTitle": "QUIZ COMPLETE",
+  "quizResultScore": "You answered {score} of {total} questions correctly.",
+  "@quizResultScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizRetake": "RETAKE QUIZ",
 
   "emergencyChoking": "Choking",
   "emergencyChokingInfant": "Choking (Infant)",
@@ -161,67 +252,6 @@
   "nearbyMedicalGoogleMaps": "Google Maps",
   "nearbyMedicalWaze": "Waze",
   "nearbyMedicalNavigationFailed": "Navigation app could not be opened.",
-
-  "incidentLogTitle": "Incident Log",
-  "incidentLogEntry": "Opened {emergencyTitle} protocol",
-  "@incidentLogEntry": {
-    "placeholders": {
-      "emergencyTitle": { "type": "String" }
-    }
-  },
-  "incidentLogProgress": "{completed} of {total} steps reached",
-  "@incidentLogProgress": {
-    "placeholders": {
-      "completed": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
-  "incidentLogCompleted": "Completed all steps",
-  "incidentLogTotalTime": "Total time: {duration}",
-  "@incidentLogTotalTime": {
-    "placeholders": {
-      "duration": { "type": "String" }
-    }
-  },
-  "incidentLogStepTimes": "Step times: {times}",
-  "@incidentLogStepTimes": {
-    "placeholders": {
-      "times": { "type": "String" }
-    }
-  },
-  "incidentLogStepTimesTitle": "Step times",
-  "incidentLogStepTimeLabel": "Step {step}",
-  "@incidentLogStepTimeLabel": {
-    "placeholders": {
-      "step": { "type": "int" }
-    }
-  },
-  "incidentLogNoTimingDetails": "No timing details available",
-  "incidentLogEmptyTitle": "No incidents yet",
-  "incidentLogEmptyBody": "Opened emergency protocols will appear here for quick review.",
-  "incidentLogLoadFailed": "Could not load incident log",
-  "incidentLogLoadFailedBody": "Please restart the app and try again.",
-  "incidentLogClearTitle": "Clear incident log?",
-  "incidentLogClearBody": "This removes all saved incident history from this device.",
-  "incidentLogClearAction": "Clear",
-  "incidentLogCleared": "Incident log cleared",
-  "incidentLogClearFailed": "Could not clear incident log",
-  "incidentLogDeleteAction": "Delete",
-  "incidentLogDeleteTitle": "Delete this incident?",
-  "incidentLogDeleteBody": "This incident will be permanently removed from the log.",
-  "incidentLogDeleted": "Incident deleted",
-  "incidentLogDeleteFailed": "Could not delete incident",
-  "incidentLogSelectAction": "Select",
-  "incidentLogSelectionTitle": "{count} selected",
-  "@incidentLogSelectionTitle": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "incidentLogDeleteSelectedTitle": "Delete selected incidents?",
-  "incidentLogDeleteSelectedBody": "The selected incidents will be permanently removed from the log.",
-  "incidentLogDeleteSelectedEmpty": "Select at least one incident to delete",
-  "incidentLogSelectedDeleted": "Selected incidents deleted",
 
   "incidentLogTitle": "Incident Log",
   "incidentLogEntry": "Opened {emergencyTitle} protocol",

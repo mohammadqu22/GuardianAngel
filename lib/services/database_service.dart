@@ -19,7 +19,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 7,
       onCreate: _createTables,
       onUpgrade: _upgradeTables,
     );
@@ -63,12 +63,31 @@ class DatabaseService {
       )
     ''');
 
+    // Learning Progress table (Learning Mode practice results)
+    await db.execute(_createLearningProgressSql);
+
     // Insert default user settings on first run
     await db.insert('User_Settings', {
       'language_pref': 'en',
       'is_first_run': 1,
     });
   }
+
+  static const String _createLearningProgressSql = '''
+      CREATE TABLE Learning_Progress (
+        emergency_type TEXT PRIMARY KEY,
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        best_score INTEGER,
+        quiz_total INTEGER,
+        completed_at TEXT,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        last_score INTEGER,
+        partial_answered INTEGER,
+        partial_correct INTEGER,
+        partial_total INTEGER,
+        partial_selections_json TEXT
+      )
+    ''';
 
   static Future<void> _upgradeTables(
     Database db,
@@ -94,6 +113,38 @@ class DatabaseService {
         "ALTER TABLE Incident_Log ADD COLUMN step_durations_json TEXT DEFAULT '[]'",
       );
       await db.execute('ALTER TABLE Incident_Log ADD COLUMN ended_at TEXT');
+    }
+    if (oldVersion < 4) {
+      await db.execute(_createLearningProgressSql);
+    }
+    // Learning_Progress upgrades only apply to versions that already had the
+    // table (v4+); older versions got the full current schema above.
+    if (oldVersion == 4) {
+      // v5 added attempt tracking.
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0',
+      );
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN last_score INTEGER',
+      );
+    }
+    if (oldVersion == 4 || oldVersion == 5) {
+      // v6 tracks abandoned quizzes (partial progress).
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN partial_answered INTEGER',
+      );
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN partial_correct INTEGER',
+      );
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN partial_total INTEGER',
+      );
+    }
+    if (oldVersion >= 4 && oldVersion < 7) {
+      // v7 stores the per-question picks so an abandoned quiz can resume.
+      await db.execute(
+        'ALTER TABLE Learning_Progress ADD COLUMN partial_selections_json TEXT',
+      );
     }
   }
 
@@ -207,6 +258,92 @@ class DatabaseService {
       'Incident_Log',
       where: 'log_id IN ($placeholders)',
       whereArgs: logIds,
+    );
+  }
+
+  // ─── Learning Progress ────────────────────────────────────
+
+  /// Returns learning progress keyed by emergency id.
+  static Future<Map<String, Map<String, dynamic>>>
+  getAllLearningProgress() async {
+    final db = await database;
+    final rows = await db.query('Learning_Progress');
+    return {for (final row in rows) row['emergency_type'] as String: row};
+  }
+
+  /// Marks a lesson as completed, keeps the best quiz score across runs, and
+  /// returns the attempt number this completion represents (1 for the first).
+  static Future<int> recordLearningCompletion(
+    String emergencyType, {
+    required int score,
+    required int total,
+  }) async {
+    final db = await database;
+    final existing = await db.query(
+      'Learning_Progress',
+      where: 'emergency_type = ?',
+      whereArgs: [emergencyType],
+      limit: 1,
+    );
+    final previous = existing.isNotEmpty ? existing.first : null;
+    final previousBest = previous?['best_score'] as int?;
+    final best = previousBest == null || score > previousBest
+        ? score
+        : previousBest;
+    final attempts = ((previous?['attempts'] as int?) ?? 0) + 1;
+    await db.insert('Learning_Progress', {
+      'emergency_type': emergencyType,
+      'is_completed': 1,
+      'best_score': best,
+      'quiz_total': total,
+      'completed_at': DateTime.now().toIso8601String(),
+      'attempts': attempts,
+      'last_score': score,
+      // A finished quiz supersedes any abandoned-run progress.
+      'partial_answered': null,
+      'partial_correct': null,
+      'partial_total': null,
+      'partial_selections_json': null,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    return attempts;
+  }
+
+  /// Saves how far an unfinished quiz run got, without touching completion
+  /// data, so an abandoned quiz still shows progress on the learning card and
+  /// can be resumed exactly where it stopped. [selections] holds the chosen
+  /// option index per answered question, in question order. [locale] tags the
+  /// run: quiz options are built from localized titles, so selections are
+  /// only meaningful in the language they were made in.
+  static Future<void> recordQuizPartialProgress(
+    String emergencyType, {
+    required int answered,
+    required int correct,
+    required int total,
+    required List<int> selections,
+    required String locale,
+  }) async {
+    final db = await database;
+    final existing = await db.query(
+      'Learning_Progress',
+      where: 'emergency_type = ?',
+      whereArgs: [emergencyType],
+      limit: 1,
+    );
+    final merged = <String, Object?>{
+      if (existing.isNotEmpty) ...existing.first,
+      'emergency_type': emergencyType,
+      'partial_answered': answered,
+      'partial_correct': correct,
+      'partial_total': total,
+      'partial_selections_json': jsonEncode({
+        'locale': locale,
+        'picks': selections,
+      }),
+    };
+    await db.insert(
+      'Learning_Progress',
+      merged,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 }

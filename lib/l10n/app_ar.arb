@@ -5,6 +5,7 @@
 
   "homeSelectEmergency": "اختر نوع الطارئ",
   "homeSearchHint": "البحث عن طارئ...",
+  "homeSearchHintLearn": "البحث في الدروس...",
   "homeDictationStartTooltip": "البحث بالصوت",
   "homeDictationStopTooltip": "إيقاف البحث الصوتي",
   "homeDictationUnavailable": "البحث الصوتي غير متاح على هذا الجهاز.",
@@ -23,6 +24,96 @@
   },
   "homeNearbyMedical": "مساعدة طبية قريبة",
   "homeNearbyMedicalSubtitle": "مستشفيات وصيدليات وعيادات قريبة",
+
+  "homeModeEmergency": "طوارئ",
+  "homeModeLearn": "تعلّم",
+  "homeLearnTitle": "التدرب على الإسعافات الأولية",
+  "learnNotStarted": "لم يبدأ بعد",
+  "learnCompleted": "مكتمل",
+  "learnBestScore": "أفضل نتيجة: {score}/{total}",
+  "@learnBestScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnStartQuiz": "ابدأ الاختبار",
+  "learnGoToQuiz": "الانتقال إلى الاختبار",
+  "learnReviewLesson": "مراجعة الدرس",
+  "learnInProgress": "قيد التقدم",
+  "learnAnswered": "تمت الإجابة على {answered} من {total}",
+  "@learnAnswered": {
+    "placeholders": {
+      "answered": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learnListen": "الاستماع إلى هذه الخطوة",
+  "quizTitle": "اختبار",
+  "quizQuestionProgress": "السؤال {current} من {total}",
+  "@quizQuestionProgress": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionWhichStep": "أي من هذه هي الخطوة رقم {number}؟",
+  "@quizQuestionWhichStep": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizNext": "التالي",
+  "quizFinish": "إنهاء",
+  "learnSummary": "اكتمل {completed} من {total} دروس",
+  "@learnSummary": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizQuestionAfter": "أي خطوة تأتي مباشرة بعد: \"{title}\"؟",
+  "@quizQuestionAfter": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizQuestionInstruction": "إلى أي خطوة تنتمي هذه التعليمات؟",
+  "quizCorrect": "إجابة صحيحة!",
+  "quizWrong": "ليست الإجابة الصحيحة",
+  "quizFromProtocol": "من البروتوكول:",
+  "quizReviewTitle": "مراجعة أخطائك",
+  "quizReviewHint": "اضغط على أي عنصر للعودة إلى تلك الخطوة في البروتوكول.",
+  "quizYourAnswer": "إجابتك: {title}",
+  "@quizYourAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizCorrectAnswer": "الإجابة الصحيحة: {title}",
+  "@quizCorrectAnswer": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "quizMedalGold": "ذهبية",
+  "quizMedalSilver": "فضية",
+  "quizMedalBronze": "برونزية",
+  "quizAttempt": "المحاولة {number}",
+  "@quizAttempt": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "quizResultTitle": "اكتمل الاختبار",
+  "quizResultScore": "أجبت بشكل صحيح على {score} من أصل {total} أسئلة.",
+  "@quizResultScore": {
+    "placeholders": {
+      "score": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "quizRetake": "إعادة الاختبار",
 
   "emergencyChoking": "اختناق",
   "emergencyChokingInfant": "اختناق (رضيع)",
@@ -137,41 +228,6 @@
   "nearbyMedicalGoogleMaps": "Google Maps",
   "nearbyMedicalWaze": "Waze",
   "nearbyMedicalNavigationFailed": "تعذر فتح تطبيق الملاحة.",
-
-  "incidentLogTitle": "سجل الحوادث",
-  "incidentLogEntry": "تم فتح بروتوكول {emergencyTitle}",
-  "incidentLogProgress": "تم الوصول إلى {completed} من {total} خطوات",
-  "incidentLogCompleted": "تم إكمال جميع الخطوات",
-  "incidentLogTotalTime": "الوقت الكلي: {duration}",
-  "incidentLogStepTimes": "أوقات الخطوات: {times}",
-  "incidentLogStepTimesTitle": "أوقات الخطوات",
-  "incidentLogStepTimeLabel": "الخطوة {step}",
-  "incidentLogNoTimingDetails": "لا توجد تفاصيل وقت متاحة",
-  "incidentLogEmptyTitle": "لا توجد حوادث بعد",
-  "incidentLogEmptyBody": "ستظهر هنا بروتوكولات الطوارئ التي تفتحها للمراجعة السريعة.",
-  "incidentLogLoadFailed": "تعذر تحميل سجل الحوادث",
-  "incidentLogLoadFailedBody": "يرجى إعادة تشغيل التطبيق والمحاولة مرة أخرى.",
-  "incidentLogClearTitle": "مسح سجل الحوادث؟",
-  "incidentLogClearBody": "سيؤدي هذا إلى إزالة كل سجل الحوادث المحفوظ على هذا الجهاز.",
-  "incidentLogClearAction": "مسح",
-  "incidentLogCleared": "تم مسح سجل الحوادث",
-  "incidentLogClearFailed": "تعذر مسح سجل الحوادث",
-  "incidentLogDeleteAction": "حذف",
-  "incidentLogDeleteTitle": "حذف هذا السجل؟",
-  "incidentLogDeleteBody": "سيتم حذف هذا السجل نهائيًا من قائمة السجلات.",
-  "incidentLogDeleted": "تم حذف السجل",
-  "incidentLogDeleteFailed": "تعذر حذف السجل",
-  "incidentLogSelectAction": "تحديد",
-  "incidentLogSelectionTitle": "تم تحديد {count}",
-  "@incidentLogSelectionTitle": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "incidentLogDeleteSelectedTitle": "حذف السجلات المحددة؟",
-  "incidentLogDeleteSelectedBody": "سيتم حذف السجلات المحددة نهائيًا من قائمة السجلات.",
-  "incidentLogDeleteSelectedEmpty": "حدد سجلًا واحدًا على الأقل لحذفه",
-  "incidentLogSelectedDeleted": "تم حذف السجلات المحددة",
 
   "incidentLogTitle": "سجل الحوادث",
   "incidentLogEntry": "تم فتح بروتوكول {emergencyTitle}",

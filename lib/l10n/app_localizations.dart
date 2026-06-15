@@ -118,6 +118,12 @@ abstract class AppLocalizations {
   /// **'Search emergency...'**
   String get homeSearchHint;
 
+  /// No description provided for @homeSearchHintLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Search lessons...'**
+  String get homeSearchHintLearn;
+
   /// No description provided for @homeDictationStartTooltip.
   ///
   /// In en, this message translates to:
@@ -189,6 +195,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hospitals, pharmacies, and clinics nearby'**
   String get homeNearbyMedicalSubtitle;
+
+  /// No description provided for @homeModeEmergency.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency'**
+  String get homeModeEmergency;
+
+  /// No description provided for @homeModeLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn'**
+  String get homeModeLearn;
+
+  /// No description provided for @homeLearnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice First Aid'**
+  String get homeLearnTitle;
+
+  /// No description provided for @learnNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get learnNotStarted;
+
+  /// No description provided for @learnCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get learnCompleted;
+
+  /// No description provided for @learnBestScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Best score: {score}/{total}'**
+  String learnBestScore(int score, int total);
+
+  /// No description provided for @learnStartQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'START QUIZ'**
+  String get learnStartQuiz;
+
+  /// No description provided for @learnGoToQuiz.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to quiz'**
+  String get learnGoToQuiz;
+
+  /// No description provided for @learnReviewLesson.
+  ///
+  /// In en, this message translates to:
+  /// **'Review lesson'**
+  String get learnReviewLesson;
+
+  /// No description provided for @learnInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get learnInProgress;
+
+  /// No description provided for @learnAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'{answered} of {total} answered'**
+  String learnAnswered(int answered, int total);
+
+  /// No description provided for @learnListen.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen to this step'**
+  String get learnListen;
+
+  /// No description provided for @quizTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quiz'**
+  String get quizTitle;
+
+  /// No description provided for @quizQuestionProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {current} of {total}'**
+  String quizQuestionProgress(int current, int total);
+
+  /// No description provided for @quizQuestionWhichStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Which of these is step {number}?'**
+  String quizQuestionWhichStep(int number);
+
+  /// No description provided for @quizNext.
+  ///
+  /// In en, this message translates to:
+  /// **'NEXT'**
+  String get quizNext;
+
+  /// No description provided for @quizFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'FINISH'**
+  String get quizFinish;
+
+  /// No description provided for @learnSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total} lessons completed'**
+  String learnSummary(int completed, int total);
+
+  /// No description provided for @quizQuestionAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Which step comes right after: \"{title}\"?'**
+  String quizQuestionAfter(String title);
+
+  /// No description provided for @quizQuestionInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Which step does this instruction belong to?'**
+  String get quizQuestionInstruction;
+
+  /// No description provided for @quizCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct!'**
+  String get quizCorrect;
+
+  /// No description provided for @quizWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Not quite'**
+  String get quizWrong;
+
+  /// No description provided for @quizFromProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'From the protocol:'**
+  String get quizFromProtocol;
+
+  /// No description provided for @quizReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your misses'**
+  String get quizReviewTitle;
+
+  /// No description provided for @quizReviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an item to revisit that step of the protocol.'**
+  String get quizReviewHint;
+
+  /// No description provided for @quizYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer: {title}'**
+  String quizYourAnswer(String title);
+
+  /// No description provided for @quizCorrectAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct answer: {title}'**
+  String quizCorrectAnswer(String title);
+
+  /// No description provided for @quizMedalGold.
+  ///
+  /// In en, this message translates to:
+  /// **'Gold'**
+  String get quizMedalGold;
+
+  /// No description provided for @quizMedalSilver.
+  ///
+  /// In en, this message translates to:
+  /// **'Silver'**
+  String get quizMedalSilver;
+
+  /// No description provided for @quizMedalBronze.
+  ///
+  /// In en, this message translates to:
+  /// **'Bronze'**
+  String get quizMedalBronze;
+
+  /// No description provided for @quizAttempt.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempt {number}'**
+  String quizAttempt(int number);
+
+  /// No description provided for @quizResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'QUIZ COMPLETE'**
+  String get quizResultTitle;
+
+  /// No description provided for @quizResultScore.
+  ///
+  /// In en, this message translates to:
+  /// **'You answered {score} of {total} questions correctly.'**
+  String quizResultScore(int score, int total);
+
+  /// No description provided for @quizRetake.
+  ///
+  /// In en, this message translates to:
+  /// **'RETAKE QUIZ'**
+  String get quizRetake;
 
   /// No description provided for @emergencyChoking.
   ///

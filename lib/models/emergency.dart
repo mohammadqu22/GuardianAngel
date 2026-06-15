@@ -24,7 +24,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'Burns',
       icon: 'fire',
       color: '0xFFFF5722',
-      description: 'Treatment for thermal, chemical, or electrical burns affecting the skin. Burns can range from minor to severe and require immediate cooling and proper care.',
+      description:
+          'Treatment for thermal, chemical, or electrical burns affecting the skin. Burns can range from minor to severe and require immediate cooling and proper care.',
       warnings: [
         'Remove from heat source immediately',
         'Cool with running water for 10-20 minutes',
@@ -38,7 +39,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'Choking',
       icon: 'air',
       color: '0xFF2196F3',
-      description: 'Emergency response for airway obstruction. Quick action is critical when someone cannot breathe, cough, or speak due to a blocked airway.',
+      description:
+          'Emergency response for airway obstruction. Quick action is critical when someone cannot breathe, cough, or speak due to a blocked airway.',
       warnings: [
         'Ask "Are you choking?" to confirm',
         'Encourage coughing if they can',
@@ -52,7 +54,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'CPR',
       icon: 'favorite',
       color: '0xFFE53935',
-      description: 'Cardiopulmonary resuscitation for cardiac arrest. CPR keeps blood flowing to vital organs until professional help arrives.',
+      description:
+          'Cardiopulmonary resuscitation for cardiac arrest. CPR keeps blood flowing to vital organs until professional help arrives.',
       warnings: [
         'Check if person is responsive and breathing',
         'Call emergency services first',
@@ -66,7 +69,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'Bleeding',
       icon: 'water_drop',
       color: '0xFFD32F2F',
-      description: 'Control severe bleeding and prevent shock. Quick action to stop blood loss can be life-saving in emergency situations.',
+      description:
+          'Control severe bleeding and prevent shock. Quick action to stop blood loss can be life-saving in emergency situations.',
       warnings: [
         'Apply direct pressure with clean cloth',
         'Keep pressure constant for 10-15 minutes',
@@ -80,7 +84,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'Fractures',
       icon: 'accessible',
       color: '0xFF9C27B0',
-      description: 'Stabilization and care for broken bones. Proper immobilization prevents further injury and reduces pain.',
+      description:
+          'Stabilization and care for broken bones. Proper immobilization prevents further injury and reduces pain.',
       warnings: [
         'Do NOT try to straighten the bone',
         'Immobilize the injured area',
@@ -94,7 +99,8 @@ List<Emergency> getSampleEmergencies() {
       name: 'Seizures',
       icon: 'warning_amber',
       color: '0xFFFFA726',
-      description: 'Response to seizure episodes. Protecting the person from injury and monitoring their condition is crucial.',
+      description:
+          'Response to seizure episodes. Protecting the person from injury and monitoring their condition is crucial.',
       warnings: [
         'Stay calm and time the seizure',
         'Clear area of dangerous objects',

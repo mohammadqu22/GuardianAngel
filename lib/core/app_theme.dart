@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/quiz_generator.dart' show QuizMedal;
+
 /// Design System: "The Clinical Sentinel"
 /// Extracted from Google Stitch project 18416799649176081778
 ///
@@ -78,6 +80,22 @@ class AppColors {
   static const Color bleedingCrimson = Color(0xFFD32F2F);
   static const Color fracturePurple = Color(0xFF9C27B0);
   static const Color seizureAmber = Color(0xFFFFA726);
+
+  // ── Learning Mode (quiz feedback + medals) ──
+  static const Color quizCorrectGreen = Color(0xFF2E7D32);
+  static const Color medalGold = Color(0xFFFFB300);
+  static const Color medalSilver = Color(0xFF90A4AE);
+  static const Color medalBronze = Color(0xFFB07C4F);
+}
+
+/// Design-system color for each medal tier — the single mapping shared by
+/// every screen that renders a medal.
+extension QuizMedalColor on QuizMedal {
+  Color get color => switch (this) {
+    QuizMedal.gold => AppColors.medalGold,
+    QuizMedal.silver => AppColors.medalSilver,
+    QuizMedal.bronze => AppColors.medalBronze,
+  };
 }
 
 // ───────────────────────────────────────────────
@@ -127,7 +145,9 @@ class AppElevation {
   static Color ghostBorder = AppColors.outlineVariant.withValues(alpha: 0.15);
 
   /// Ghost border — outlineVariant at 15% opacity (dark mode)
-  static Color ghostBorderDark = AppColorsDark.outlineVariant.withValues(alpha: 0.15);
+  static Color ghostBorderDark = AppColorsDark.outlineVariant.withValues(
+    alpha: 0.15,
+  );
 }
 
 // ───────────────────────────────────────────────
@@ -218,9 +238,12 @@ class AppColorsDark {
 
 ThemeMode themeModeFromString(String value) {
   switch (value) {
-    case 'light': return ThemeMode.light;
-    case 'dark':  return ThemeMode.dark;
-    default:      return ThemeMode.system;
+    case 'light':
+      return ThemeMode.light;
+    case 'dark':
+      return ThemeMode.dark;
+    default:
+      return ThemeMode.system;
   }
 }
 
@@ -363,9 +386,7 @@ ThemeData buildAppTheme() {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
-        textStyle: textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+        textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
 
@@ -401,7 +422,9 @@ ThemeData buildAppTheme() {
         return AppColors.outline;
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return AppColors.primaryFixed;
+        if (states.contains(WidgetState.selected)) {
+          return AppColors.primaryFixed;
+        }
         return AppColors.surfaceContainerHighest;
       }),
     ),
@@ -437,10 +460,7 @@ ThemeData buildAppTheme() {
         borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       hintStyle: TextStyle(color: AppColors.outline),
     ),
   );
@@ -581,9 +601,7 @@ ThemeData buildDarkTheme() {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
-        textStyle: textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+        textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
 
@@ -619,7 +637,9 @@ ThemeData buildDarkTheme() {
         return AppColorsDark.outline;
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return AppColorsDark.primaryContainer;
+        if (states.contains(WidgetState.selected)) {
+          return AppColorsDark.primaryContainer;
+        }
         return AppColorsDark.surfaceContainerHighest;
       }),
     ),
@@ -655,10 +675,7 @@ ThemeData buildDarkTheme() {
         borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: const BorderSide(color: AppColorsDark.primary, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       hintStyle: TextStyle(color: AppColorsDark.outline),
     ),
   );

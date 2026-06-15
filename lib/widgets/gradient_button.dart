@@ -38,7 +38,7 @@ class GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs     = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final colors = gradientColors ?? [cs.primary, cs.primaryContainer];
     final radius = BorderRadius.circular(borderRadius);
 

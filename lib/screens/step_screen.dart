@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +10,7 @@ import '../core/text_normalization.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
+import '../services/protocol_loader.dart';
 import '../services/tts_service.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -188,7 +187,7 @@ class _StepScreenState extends State<StepScreen> {
         TtsService.instance.speak(
           widget.emergencyId,
           _steps[0]['step'] as int,
-          _ttsLangCode(_loadedLocale ?? 'en'),
+          TtsService.langCodeFor(_loadedLocale ?? 'en'),
         );
       }
       // Free Mode stays "ready" while the first step narrates; the mic only
@@ -223,53 +222,26 @@ class _StepScreenState extends State<StepScreen> {
       _stepDurations = [];
     });
 
-    String? data;
-
-    // 1. Try the locale-specific file (he/ or ar/ subdirectory)
-    if (localeCode != 'en') {
-      try {
-        data = await rootBundle.loadString(
-          'assets/data/$localeCode/${widget.emergencyId}.json',
-        );
-      } catch (_) {
-        // locale file missing — will fall back to English below
-      }
-    }
-
-    // 2. Fall back to the English file in assets/data/
-    try {
-      data ??= await rootBundle.loadString(
-        'assets/data/${widget.emergencyId}.json',
-      );
-    } catch (_) {
+    final result = await ProtocolLoader.tryLoad(widget.emergencyId, localeCode);
+    final error = result.error;
+    if (error != null) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorFailed;
+        _errorMessage = switch (error) {
+          ProtocolLoadError.failed => AppLocalizations.of(
+            context,
+          )!.stepErrorFailed,
+          ProtocolLoadError.invalid => AppLocalizations.of(
+            context,
+          )!.stepErrorInvalid,
+        };
         _loading = false;
       });
       return;
     }
-
-    final Map<String, dynamic> json;
-    try {
-      json = jsonDecode(data) as Map<String, dynamic>;
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
-        _loading = false;
-      });
-      return;
-    }
-    final steps = json['steps'];
+    final json = result.json!;
+    final steps = json['steps'] as List;
     if (!mounted) return;
-    if (steps == null || (steps as List).isEmpty) {
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.stepErrorInvalid;
-        _loading = false;
-      });
-      return;
-    }
     setState(() {
       _steps = steps;
       _warnings = json['warnings'] ?? [];
@@ -289,7 +261,7 @@ class _StepScreenState extends State<StepScreen> {
       TtsService.instance.speak(
         widget.emergencyId,
         steps[0]['step'] as int,
-        _ttsLangCode(_loadedLocale ?? 'en'),
+        TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
     }
     // If Free Mode is on and nothing is narrating (TTS off), open the mic now
@@ -556,7 +528,7 @@ void _onHandsFreeResult(SpeechRecognitionResult result) {
       TtsService.instance.speak(
         widget.emergencyId,
         step['step'] as int,
-        _ttsLangCode(_loadedLocale ?? 'en'),
+        TtsService.langCodeFor(_loadedLocale ?? 'en'),
       );
     } else {
       // No narration to wait on — keep listening continuously if enabled.
@@ -618,17 +590,6 @@ void _onHandsFreeResult(SpeechRecognitionResult result) {
       );
     } catch (_) {
       // Progress logging should never block the emergency instructions.
-    }
-  }
-
-  static String _ttsLangCode(String locale) {
-    switch (locale) {
-      case 'ar':
-        return 'ar-SA';
-      case 'he':
-        return 'he-IL';
-      default:
-        return 'en-US';
     }
   }
 
@@ -866,7 +827,10 @@ Widget build(BuildContext context) {
                                   ),
                                   child: Image.asset(
                                     step['image'] ??
-                                        'assets/images/${widget.emergencyId}/step_${_currentStep + 1}.png',
+                                        ProtocolLoader.stepImagePath(
+                                          widget.emergencyId,
+                                          _currentStep + 1,
+                                        ),
                                     height: 240,
                                     width: double.infinity,
                                     fit: BoxFit.contain,
@@ -1076,7 +1040,10 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.all(32),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: (constraints.maxHeight - 64).clamp(0.0, double.infinity),
+                minHeight: (constraints.maxHeight - 64).clamp(
+                  0.0,
+                  double.infinity,
+                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSearchHint => 'Search emergency...';
 
   @override
+  String get homeSearchHintLearn => 'Search lessons...';
+
+  @override
   String get homeDictationStartTooltip => 'Search by voice';
 
   @override
@@ -57,6 +60,130 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeNearbyMedicalSubtitle =>
       'Hospitals, pharmacies, and clinics nearby';
+
+  @override
+  String get homeModeEmergency => 'Emergency';
+
+  @override
+  String get homeModeLearn => 'Learn';
+
+  @override
+  String get homeLearnTitle => 'Practice First Aid';
+
+  @override
+  String get learnNotStarted => 'Not started';
+
+  @override
+  String get learnCompleted => 'Completed';
+
+  @override
+  String learnBestScore(int score, int total) {
+    return 'Best score: $score/$total';
+  }
+
+  @override
+  String get learnStartQuiz => 'START QUIZ';
+
+  @override
+  String get learnGoToQuiz => 'Go to quiz';
+
+  @override
+  String get learnReviewLesson => 'Review lesson';
+
+  @override
+  String get learnInProgress => 'In progress';
+
+  @override
+  String learnAnswered(int answered, int total) {
+    return '$answered of $total answered';
+  }
+
+  @override
+  String get learnListen => 'Listen to this step';
+
+  @override
+  String get quizTitle => 'Quiz';
+
+  @override
+  String quizQuestionProgress(int current, int total) {
+    return 'Question $current of $total';
+  }
+
+  @override
+  String quizQuestionWhichStep(int number) {
+    return 'Which of these is step $number?';
+  }
+
+  @override
+  String get quizNext => 'NEXT';
+
+  @override
+  String get quizFinish => 'FINISH';
+
+  @override
+  String learnSummary(int completed, int total) {
+    return '$completed of $total lessons completed';
+  }
+
+  @override
+  String quizQuestionAfter(String title) {
+    return 'Which step comes right after: \"$title\"?';
+  }
+
+  @override
+  String get quizQuestionInstruction =>
+      'Which step does this instruction belong to?';
+
+  @override
+  String get quizCorrect => 'Correct!';
+
+  @override
+  String get quizWrong => 'Not quite';
+
+  @override
+  String get quizFromProtocol => 'From the protocol:';
+
+  @override
+  String get quizReviewTitle => 'Review your misses';
+
+  @override
+  String get quizReviewHint =>
+      'Tap an item to revisit that step of the protocol.';
+
+  @override
+  String quizYourAnswer(String title) {
+    return 'Your answer: $title';
+  }
+
+  @override
+  String quizCorrectAnswer(String title) {
+    return 'Correct answer: $title';
+  }
+
+  @override
+  String get quizMedalGold => 'Gold';
+
+  @override
+  String get quizMedalSilver => 'Silver';
+
+  @override
+  String get quizMedalBronze => 'Bronze';
+
+  @override
+  String quizAttempt(int number) {
+    return 'Attempt $number';
+  }
+
+  @override
+  String get quizResultTitle => 'QUIZ COMPLETE';
+
+  @override
+  String quizResultScore(int score, int total) {
+    return 'You answered $score of $total questions correctly.';
+  }
+
+  @override
+  String get quizRetake => 'RETAKE QUIZ';
 
   @override
   String get emergencyChoking => 'Choking';

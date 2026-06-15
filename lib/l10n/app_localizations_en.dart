@@ -176,6 +176,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTtsSubtitle => 'TTS Audio Instructions';
 
   @override
+  String get settingsFreeMode => 'Free Mode';
+
+  @override
+  String get settingsFreeModeSubtitle => 'Hands-free voice navigation';
+
+  @override
+  String get settingsAiDetection => 'AI Emergency Detection';
+
+  @override
+  String get settingsAiDetectionSubtitle =>
+      'Sends typed text to Groq (cloud) to suggest a protocol';
+
+  @override
   String get settingsSectionEmergencyContact => 'Emergency Contact';
 
   @override

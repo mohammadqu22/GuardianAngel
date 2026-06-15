@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:guardian_angel/l10n/app_localizations.dart';
@@ -7,11 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_theme.dart';
 import '../core/duration_formatting.dart';
 import '../core/number_formatting.dart';
+import '../core/text_normalization.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/share_location_sheet.dart';
 import '../services/database_service.dart';
 import '../services/tts_service.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -57,6 +58,61 @@ class _StepScreenState extends State<StepScreen> {
   bool _handsFreeEnabled = false;
   bool _handsFreeListening = false;
   bool _handsFreeReady = false;
+  // Global Free Mode setting captured at load; used to re-honor the setting on
+  // protocol restart instead of forcing it off.
+  bool _freeModeDefault = true;
+  // Re-entrancy guard: multiple restart paths (onStatus, onError, onComplete)
+  // can fire near-simultaneously — only one start sequence runs at a time.
+  bool _handsFreeStarting = false;
+  // Watchdog that restarts the recognizer if it ever stops while Free Mode is
+  // still on — a reliable backstop for whatever lifecycle edge the callback
+  // re-arms miss.
+  Timer? _handsFreeWatchdog;
+  // Guards against acting on the same command twice within one listen session
+  // (partial result, then final result of the same phrase).
+  bool _commandActedThisSession = false;
+  // When narration started. The watchdog clears a stale _narrating that never
+  // got an onComplete (e.g. playback preempted by stop()), so the mic can't
+  // latch closed forever.
+  DateTime? _narrationStartedAt;
+
+  // ── Command vocabularies (normalized at match time) ──
+  // English includes common mis-recognitions; Arabic includes MSA + dialectal
+  // forms and frequent recognizer variants, since on-device Arabic STT is noisy.
+  static const _nextWords = <String>[
+    // English
+    'next', 'nex', 'nets', 'neck', 'text',
+    'continue', 'move on', 'go ahead', 'forward', 'go forward',
+    'proceed', 'okay', 'ok', 'done', 'yes',
+    // Hebrew
+    'הבא', 'המשך', 'קדימה', 'כן',
+    // Arabic (MSA + dialect + variants)
+    'التالي', 'تالي', 'التالية', 'استمر', 'كمل', 'للأمام', 'امشي', 'يلا',
+    'قدام', 'روح',
+  ];
+
+  static const _previousWords = <String>[
+    // English
+    'previous', 'prev', 'back', 'go back', 'before',
+    'last', 'return', 'undo',
+    // Hebrew
+    'הקודם', 'אחורה', 'חזור',
+    // Arabic (MSA + dialect + variants)
+    'السابق', 'سابق', 'ارجع', 'رجع', 'رجوع', 'للخلف', 'وراء', 'ورا',
+  ];
+
+  // Normalized once at class load — the matcher runs on every speech result
+  // (including streaming partials), so don't re-normalize the constants each
+  // time.
+  static final List<String> _nextWordsNorm =
+      _nextWords.map(normalizeForMatch).toList(growable: false);
+  static final List<String> _previousWordsNorm =
+      _previousWords.map(normalizeForMatch).toList(growable: false);
+  // True while a step is being narrated. The mic is muted during narration so
+  // the recognizer doesn't transcribe the app's own voice and trigger false
+  // Next/Back commands; listening resumes when narration completes.
+  bool _narrating = false;
+  StreamSubscription<void>? _ttsCompleteSub;
 
   void _checkScrollable() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,6 +125,39 @@ class _StepScreenState extends State<StepScreen> {
   @override
   void initState() {
     super.initState();
+    // When a step finishes narrating, re-open the mic for the next command.
+    _ttsCompleteSub = TtsService.instance.onComplete.listen((_) {
+      if (!mounted) return;
+      _narrating = false;
+      _narrationStartedAt = null;
+      // Audio finished — open the mic for Free Mode (if enabled).
+      _maybeStartHandsFree();
+    });
+    // Backstop: every couple of seconds, if Free Mode is on but the recognizer
+    // has stopped (silence timeout, dropped session, etc.), restart it — and
+    // keep the UI "listening" flag honest with the real recognizer state.
+    _handsFreeWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) return;
+      // Clear a stale narration flag that never received an onComplete (e.g.
+      // playback preempted by stop()), so the mic can't latch closed forever.
+      if (_narrating &&
+          _narrationStartedAt != null &&
+          DateTime.now().difference(_narrationStartedAt!).inSeconds > 30) {
+        _narrating = false;
+        _narrationStartedAt = null;
+      }
+      final reallyListening = _handsFree.isListening;
+      if (_handsFreeListening != reallyListening && !_handsFreeStarting) {
+        setState(() => _handsFreeListening = reallyListening);
+      }
+      if (_handsFreeEnabled &&
+          !_completed &&
+          !_narrating &&
+          !_handsFreeStarting &&
+          !reallyListening) {
+        _startHandsFreeListening();
+      }
+    });
     _cardScrollController.addListener(() {
       final atBottom =
           _cardScrollController.offset >=
@@ -80,20 +169,32 @@ class _StepScreenState extends State<StepScreen> {
     });
     SharedPreferences.getInstance().then((prefs) {
       if (!mounted) return;
-      final enabled = prefs.getBool('tts_enabled') ?? true;
+      final ttsEnabled = prefs.getBool('tts_enabled') ?? true;
+      // Free Mode follows the global setting (default on) each time a protocol
+      // opens. Manual toggles inside the protocol change only this session and
+      // never write back here, so the next protocol honors the setting again.
+      final freeMode = prefs.getBool('free_mode_enabled') ?? true;
+      _freeModeDefault = freeMode;
       setState(() {
-        _ttsEnabled = enabled;
+        _ttsEnabled = ttsEnabled;
         _ttsKnown = true;
+        _handsFreeEnabled = freeMode;
       });
       // If the protocol finished loading before the pref was known,
       // speak the first step now. Otherwise _loadProtocol handles it.
-      if (enabled && _steps.isNotEmpty) {
+      if (ttsEnabled && _steps.isNotEmpty) {
+        _narrating = true;
+      _narrationStartedAt = DateTime.now();
         TtsService.instance.speak(
           widget.emergencyId,
           _steps[0]['step'] as int,
           _ttsLangCode(_loadedLocale ?? 'en'),
         );
       }
+      // Free Mode stays "ready" while the first step narrates; the mic only
+      // opens when nothing is playing (e.g. TTS off). When TTS is on, the
+      // onComplete handler opens the mic once the audio finishes.
+      _maybeStartHandsFree();
     });
   }
 
@@ -183,12 +284,17 @@ class _StepScreenState extends State<StepScreen> {
     // Speak the first step only if the tts_enabled pref is already known.
     // If it hasn't loaded yet, initState's callback will speak once it resolves.
     if (_ttsKnown && _ttsEnabled) {
+      _narrating = true;
+      _narrationStartedAt = DateTime.now();
       TtsService.instance.speak(
         widget.emergencyId,
         steps[0]['step'] as int,
         _ttsLangCode(_loadedLocale ?? 'en'),
       );
     }
+    // If Free Mode is on and nothing is narrating (TTS off), open the mic now
+    // that the steps are loaded. Otherwise onComplete opens it post-narration.
+    _maybeStartHandsFree();
   }
 
   void _nextStep() async {
@@ -239,7 +345,7 @@ class _StepScreenState extends State<StepScreen> {
     }
   }
   void _resetProtocol() {
-    final l10n = AppLocalizations.of(context)!; // ← add this line
+    final l10n = AppLocalizations.of(context)!;
   showDialog(
     context: context,
     builder: (context) {
@@ -253,7 +359,7 @@ class _StepScreenState extends State<StepScreen> {
           children: [
             Icon(Icons.restart_alt, color: widget.emergencyColor),
             const SizedBox(width: 10),
-            
+            Expanded(child: Text(l10n.stepRestartTitle)),
           ],
         ),
         content: Text(l10n.stepRestartBody),
@@ -274,9 +380,11 @@ class _StepScreenState extends State<StepScreen> {
                 _stepStartedAt = DateTime.now();
                 _stepDurations = List<int>.filled(_steps.length, 0);
                 _completed = false;
-                _handsFreeEnabled = false;
+                // Restart re-honors the global Free Mode setting (like opening
+                // the protocol fresh) instead of permanently disabling it.
+                _handsFreeEnabled = _freeModeDefault;
                 _handsFreeListening = false;
-
+                _narrating = false;
               });
               _handsFree.cancel();
               _cardScrollController.jumpTo(0);
@@ -308,28 +416,53 @@ class _StepScreenState extends State<StepScreen> {
   }
 }
 
+/// Opens the mic for Free Mode only when appropriate: Free Mode on, protocol
+/// loaded, not completed, and nothing currently narrating. While a step is
+/// being read aloud, Free Mode stays in a "ready" state and the mic stays
+/// closed — the onComplete handler opens it once the audio finishes.
+void _maybeStartHandsFree() {
+  if (!_handsFreeEnabled || _completed || _narrating || _steps.isEmpty) return;
+  _startHandsFreeListening();
+}
+
 Future<void> _startHandsFreeListening() async {
-  if (_handsFreeListening || _completed) return;
+  if (_completed || !_handsFreeEnabled || _narrating) return;
+  // Only one start sequence at a time, so the several restart paths can't
+  // stomp on each other mid-init.
+  if (_handsFreeStarting) return;
+  _handsFreeStarting = true;
+  try {
   if (!_handsFreeReady) {
     final available = await _handsFree.initialize(
       onStatus: (status) {
+      if (!mounted) return;
       final listening = status == SpeechToText.listeningStatus;
-      if (mounted && _handsFreeListening != listening) {
+      if (_handsFreeListening != listening) {
         setState(() => _handsFreeListening = listening);
-        if (!listening && _handsFreeEnabled && !_completed) {
-          Future.delayed(
-            const Duration(milliseconds: 500),
-            _startHandsFreeListening,
-          );
-        }
+      }
+      // speech_to_text is single-shot on iOS: each session ends after a
+      // final result or pauseFor/listenFor elapses. Re-arm whenever a
+      // session ends so hands-free stays active across step transitions.
+      if (!listening && _handsFreeEnabled && !_completed && !_narrating) {
+        Future.delayed(
+          const Duration(milliseconds: 400),
+          _startHandsFreeListening,
+        );
       }
     },
       onError: (error) {
         if (!mounted) return;
+        // A silence/no-match timeout is normal in hands-free mode (the user
+        // simply hasn't spoken yet). iOS reports it as "permanent", but it is
+        // NOT a real failure — keep the engine alive and re-arm so Free Mode
+        // stays usable instead of dying after the audio finishes.
+        if (isTransientSpeechError(error.errorMsg)) {
+          Future.delayed(const Duration(seconds: 1), _maybeStartHandsFree);
+          return;
+        }
         if (error.permanent) setState(() => _handsFreeReady = false);
-        // restart listening after transient errors
         if (_handsFreeEnabled && !error.permanent) {
-          Future.delayed(const Duration(seconds: 1), _startHandsFreeListening);
+          Future.delayed(const Duration(seconds: 1), _maybeStartHandsFree);
         }
       },
     );
@@ -341,6 +474,14 @@ Future<void> _startHandsFreeListening() async {
     }
   }
 
+  // Ensure any prior session is fully torn down before re-listening. The
+  // plugin's isListening can lag and calling listen() twice throws on iOS.
+  if (_handsFree.isListening) {
+    await _handsFree.stop();
+    await Future.delayed(const Duration(milliseconds: 150));
+  }
+  if (!mounted || _completed || !_handsFreeEnabled || _narrating) return;
+
   final localeCode = _loadedLocale ?? 'en';
   final localeId = switch (localeCode) {
     'he' => 'he_IL',
@@ -348,6 +489,8 @@ Future<void> _startHandsFreeListening() async {
     _    => 'en_US',
   };
 
+  // Fresh session: allow one command to act (covers partial-then-final).
+  _commandActedThisSession = false;
   await _handsFree.listen(
     onResult: _onHandsFreeResult,
     listenOptions: SpeechListenOptions(
@@ -355,11 +498,23 @@ Future<void> _startHandsFreeListening() async {
       partialResults: true,
       listenMode: ListenMode.dictation,
       localeId: localeId,
+      // Commands act on the first matching partial, so these only govern the
+      // idle/silence path. Keep pauseFor short for snappy finalization; the
+      // watchdog re-arms whenever the session ends.
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
+      pauseFor: const Duration(seconds: 2),
     ),
   );
   if (mounted) setState(() => _handsFreeListening = true);
+  } catch (_) {
+    // Recognizer busy/transient right after a session ended — retry shortly so
+    // Free Mode recovers instead of silently going dead.
+    if (mounted && _handsFreeEnabled && !_completed && !_narrating) {
+      Future.delayed(const Duration(milliseconds: 600), _maybeStartHandsFree);
+    }
+  } finally {
+    _handsFreeStarting = false;
+  }
 }
 
 Future<void> _stopHandsFreeListening() async {
@@ -368,51 +523,45 @@ Future<void> _stopHandsFreeListening() async {
 }
 
 void _onHandsFreeResult(SpeechRecognitionResult result) {
-  if (!result.finalResult) return;
-  final words = result.recognizedWords.toLowerCase().trim();
+  if (_commandActedThisSession) return;
+  // Act on PARTIAL results, not just the final one. iOS only finalizes after a
+  // multi-second end-of-speech silence (pauseFor), which made commands feel
+  // 5+ seconds slow. Since we match specific command keywords, the match
+  // itself is a strong signal — acting on the first matching partial removes
+  // that delay almost entirely. The per-session guard prevents double-firing.
+  final words = normalizeForMatch(result.recognizedWords);
+  if (words.isEmpty) return;
 
-  // ── Next words (English + typos + Hebrew + Arabic) ──
-    const nextWords = <String>[
-    // English
-    'next', 'nex', 'nets', 'neck', 'text',
-    'continue', 'move on', 'go ahead', 'forward', 'go forward',
-    'proceed', 'okay', 'ok', 'done', 'yes',
-    // Hebrew
-    'הבא', 'המשך', 'קדימה', 'כן',
-    // Arabic
-    'التالي', 'استمر', 'للأمام', 'تالي', 'يلا', 'امشي',
-  ];
+  final isNext = _nextWordsNorm.any((w) => fuzzyContains(words, w));
+  final isPrev = _previousWordsNorm.any((w) => fuzzyContains(words, w));
 
-  // ── Previous words (English + Hebrew + Arabic) ──
-  const previousWords = <String>[
-    // English
-    'previous', 'prev', 'back', 'go back', 'before',
-    'last', 'return', 'undo',
-    // Hebrew
-    'הקודם', 'אחורה', 'חזור',
-    // Arabic
-    'السابق', 'ارجع', 'للخلف', 'رجع', 'سابق',
-  ];
-
-  if (nextWords.any((w) => words.contains(w))) {
+  if (isNext) {
+    _commandActedThisSession = true;
     _nextStep();
-  } else if (previousWords.any((w) => words.contains(w))) {
+  } else if (isPrev) {
+    _commandActedThisSession = true;
     _previousStep();
   }
-
-  // restart listening after each final result
-  if (_handsFreeEnabled && !_completed) {
-    Future.delayed(const Duration(milliseconds: 500), _startHandsFreeListening);
-  }
+  // Re-arming is handled centrally by the onStatus callback / watchdog when the
+  // session ends.
 }
   void _speakCurrentStep() {
     if (_ttsEnabled) {
+      // Mute the mic for the duration of narration so the spoken instructions
+      // aren't misheard as commands. The onComplete subscription re-opens it.
+      _narrating = true;
+      _narrationStartedAt = DateTime.now();
+      if (_handsFreeEnabled) _stopHandsFreeListening();
       final step = _steps[_currentStep];
       TtsService.instance.speak(
         widget.emergencyId,
         step['step'] as int,
         _ttsLangCode(_loadedLocale ?? 'en'),
       );
+    } else {
+      // No narration to wait on — keep listening continuously if enabled.
+      _narrating = false;
+      if (_handsFreeEnabled && !_completed) _startHandsFreeListening();
     }
   }
 
@@ -493,6 +642,8 @@ void _onHandsFreeResult(SpeechRecognitionResult result) {
         markEnded: true,
       );
     }
+    _ttsCompleteSub?.cancel();
+    _handsFreeWatchdog?.cancel();
     _handsFree.cancel();
     _cardScrollController.dispose();
     TtsService.instance.stop();

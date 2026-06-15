@@ -174,6 +174,19 @@ class AppLocalizationsHe extends AppLocalizations {
   String get settingsTtsSubtitle => 'הוראות שמע TTS';
 
   @override
+  String get settingsFreeMode => 'מצב ידיים חופשיות';
+
+  @override
+  String get settingsFreeModeSubtitle => 'ניווט קולי ללא ידיים';
+
+  @override
+  String get settingsAiDetection => 'זיהוי חירום עם AI';
+
+  @override
+  String get settingsAiDetectionSubtitle =>
+      'שולח את הטקסט שהוקלד ל-Groq (ענן) כדי להציע פרוטוקול';
+
+  @override
   String get settingsSectionEmergencyContact => 'איש קשר לחירום';
 
   @override

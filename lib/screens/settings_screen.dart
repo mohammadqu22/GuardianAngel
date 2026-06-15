@@ -27,6 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Stored as a locale code: 'en', 'he', or 'ar'.
   String _selectedLocaleCode = 'en';
   bool      _ttsEnabled  = true;
+  bool      _freeModeEnabled = true;
+  bool      _aiDetectionEnabled = true;
   ThemeMode _themeMode   = ThemeMode.system;
   Map<String, dynamic>? _emergencyContact;
 
@@ -45,6 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _selectedLocaleCode = validCodes.contains(raw) ? raw : 'en';
       _ttsEnabled         = prefs.getBool('tts_enabled') ?? true;
+      _freeModeEnabled    = prefs.getBool('free_mode_enabled') ?? true;
+      _aiDetectionEnabled = prefs.getBool('ai_detection_enabled') ?? true;
       _themeMode          = themeModeFromString(prefs.getString('theme_mode') ?? 'system');
     });
   }
@@ -101,6 +105,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('tts_enabled', enabled);
     if (!mounted) return;
     setState(() => _ttsEnabled = enabled);
+  }
+
+  Future<void> _saveFreeMode(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('free_mode_enabled', enabled);
+    if (!mounted) return;
+    setState(() => _freeModeEnabled = enabled);
+  }
+
+  Future<void> _saveAiDetection(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('ai_detection_enabled', enabled);
+    if (!mounted) return;
+    setState(() => _aiDetectionEnabled = enabled);
   }
 
   void _showEmergencyContactDialog() {
@@ -281,6 +299,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: l10n.settingsTtsSubtitle,
               value: _ttsEnabled,
               onChanged: _saveTTS,
+            ),
+            _buildSwitchCard(
+              icon: Icons.mic_none,
+              iconColor: cs.tertiary,
+              title: l10n.settingsFreeMode,
+              subtitle: l10n.settingsFreeModeSubtitle,
+              value: _freeModeEnabled,
+              onChanged: _saveFreeMode,
+            ),
+            _buildSwitchCard(
+              icon: Icons.auto_awesome,
+              iconColor: cs.tertiary,
+              title: l10n.settingsAiDetection,
+              subtitle: l10n.settingsAiDetectionSubtitle,
+              value: _aiDetectionEnabled,
+              onChanged: _saveAiDetection,
             ),
 
             const SizedBox(height: 32),

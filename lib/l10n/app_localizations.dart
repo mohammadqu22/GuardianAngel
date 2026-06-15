@@ -406,6 +406,30 @@ abstract class AppLocalizations {
   /// **'TTS Audio Instructions'**
   String get settingsTtsSubtitle;
 
+  /// No description provided for @settingsFreeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Mode'**
+  String get settingsFreeMode;
+
+  /// No description provided for @settingsFreeModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hands-free voice navigation'**
+  String get settingsFreeModeSubtitle;
+
+  /// No description provided for @settingsAiDetection.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Emergency Detection'**
+  String get settingsAiDetection;
+
+  /// No description provided for @settingsAiDetectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends typed text to Groq (cloud) to suggest a protocol'**
+  String get settingsAiDetectionSubtitle;
+
   /// No description provided for @settingsSectionEmergencyContact.
   ///
   /// In en, this message translates to:

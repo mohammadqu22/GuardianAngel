@@ -1,13 +1,25 @@
+import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 
 class TtsService {
-  TtsService._();
+  TtsService._() {
+    // Surface natural playback completion to listeners (e.g. the step screen
+    // re-opens the mic for hands-free commands once narration finishes).
+    _player.onPlayerComplete.listen((_) => _completeController.add(null));
+  }
   static final TtsService instance = TtsService._();
 
   final AudioPlayer _player = AudioPlayer();
+  final StreamController<void> _completeController =
+      StreamController<void>.broadcast();
   String? _lastEmergencyId;
   int? _lastStepIndex;
   String? _lastLangCode;
+
+  /// Fires whenever a step finishes narrating — including when playback fails
+  /// (missing asset), so listeners never hang waiting for a step that will
+  /// never complete.
+  Stream<void> get onComplete => _completeController.stream;
 
   static final AudioContext _audioContext = AudioContext(
     iOS: AudioContextIOS(category: AVAudioSessionCategory.playback),
@@ -46,7 +58,9 @@ class TtsService {
       await _player.stop();
       await _player.play(AssetSource(path), volume: 1.0);
     } catch (_) {
-      // Asset missing or playback failure — fail silently.
+      // Asset missing or playback failure — fail silently, but still signal
+      // completion so hands-free listening resumes instead of hanging.
+      _completeController.add(null);
     }
   }
 

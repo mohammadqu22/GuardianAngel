@@ -174,6 +174,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsTtsSubtitle => 'تعليمات صوتية TTS';
 
   @override
+  String get settingsFreeMode => 'وضع بدون يدين';
+
+  @override
+  String get settingsFreeModeSubtitle => 'تنقل صوتي بدون يدين';
+
+  @override
+  String get settingsAiDetection => 'كشف الطوارئ بالذكاء الاصطناعي';
+
+  @override
+  String get settingsAiDetectionSubtitle =>
+      'يرسل النص المكتوب إلى Groq (سحابة) لاقتراح بروتوكول';
+
+  @override
   String get settingsSectionEmergencyContact => 'جهة اتصال الطوارئ';
 
   @override

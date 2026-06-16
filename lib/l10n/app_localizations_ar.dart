@@ -755,4 +755,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get homeAutoPrompt => 'ما هي حالتك الطارئة؟ اضغط للإلغاء.';
+
+  @override
+  String get homeAiDetectedTitle => 'اكتشف الذكاء الاصطناعي حالتك الطارئة';
+
+  @override
+  String get homeAiOpenProtocol => 'فتح البروتوكول';
 }

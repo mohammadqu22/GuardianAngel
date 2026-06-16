@@ -364,5 +364,7 @@
   "stepHandsFreeBanner": "Hands-free active — say \"Next\" or \"Back\"",
   "stepHandsFreeOn": "Hands-free ON",
   "stepHandsFreeOff": "Hands-free OFF",
-  "homeAutoPrompt": "What is your emergency? Tap to dismiss."
+  "homeAutoPrompt": "What is your emergency? Tap to dismiss.",
+  "homeAiDetectedTitle": "AI detected your emergency",
+  "homeAiOpenProtocol": "OPEN PROTOCOL"
 }

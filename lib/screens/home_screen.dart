@@ -762,84 +762,7 @@ void _dismissVoicePrompt() {
                     ),
                   ),
                 ),
-                // ── AI suggestion banner (emergency mode only) ──
-                if (!_learnMode && _aiLoading)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: cs.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          l10n.homeAiAnalyzing,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: cs.outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (!_learnMode && _aiSuggestedId != null && !_aiLoading)
-                  GestureDetector(
-                    onTap: () {
-                      _openEmergency(
-                        id: _aiSuggestedId!,
-                        title: _aiSuggestedTitle!,
-                        color: _aiSuggestedColor!,
-                      );
-                      setState(() {
-                        _aiSuggestedId = null;
-                        _aiSuggestedTitle = null;
-                        _aiSuggestedColor = null;
-                      });
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(top: 10),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _aiSuggestedColor!.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(
-                          color: _aiSuggestedColor!.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: _aiSuggestedColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              l10n.homeAiDetected(_aiSuggestedTitle!),
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: _aiSuggestedColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            color: _aiSuggestedColor,
-                            size: 14,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+               
                 const SizedBox(height: 14),
                 // Both header cards (learn summary / nearby medical help)
                 // collapse in sync with grid scrolling so the protocols get
@@ -868,26 +791,133 @@ void _dismissVoicePrompt() {
                 Expanded(
                   child: _inertWhileSearching(
                     filteredEmergencies.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  size: 64,
-                                  color: cs.outline,
+                    ? (_aiSuggestedId != null || _aiLoading)
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_aiLoading) ...[
+                              CircularProgressIndicator(color: cs.primary),
+                              const SizedBox(height: 16),
+                              Text(
+                                l10n.homeAiAnalyzing,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: cs.onSurfaceVariant,
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  l10n.homeNoResults,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: cs.outline,
+                              ),
+                            ] else if (_aiSuggestedId != null) ...[
+                              GestureDetector(
+                                onTap: () {
+                                  _openEmergency(
+                                    id: _aiSuggestedId!,
+                                    title: _aiSuggestedTitle!,
+                                    color: _aiSuggestedColor!,
+                                  );
+                                  setState(() {
+                                    _aiSuggestedId = null;
+                                    _aiSuggestedTitle = null;
+                                    _aiSuggestedColor = null;
+                                  });
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(28),
+                                  decoration: BoxDecoration(
+                                    color: _aiSuggestedColor!.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                                    border: Border.all(
+                                      color: _aiSuggestedColor!.withValues(alpha: 0.4),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: _aiSuggestedColor!.withValues(alpha: 0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.auto_awesome,
+                                          color: _aiSuggestedColor,
+                                          size: 48,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        l10n.homeAiDetectedTitle,
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          color: cs.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _aiSuggestedTitle!,
+                                        style: theme.textTheme.headlineMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: _aiSuggestedColor,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _aiSuggestedColor,
+                                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.play_arrow_rounded,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              l10n.homeAiOpenProtocol,
+                                              style: theme.textTheme.titleMedium?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: cs.outline,
                             ),
-                          )
-                        : LayoutBuilder(
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.homeNoResults,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: cs.outline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                                        : LayoutBuilder(
                             builder: (context, constraints) {
                               const spacing = 16.0;
                               // When there are more than four protocols, shrink the

@@ -759,4 +759,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAutoPrompt => 'What is your emergency? Tap to dismiss.';
+
+  @override
+  String get homeAiDetectedTitle => 'AI detected your emergency';
+
+  @override
+  String get homeAiOpenProtocol => 'OPEN PROTOCOL';
 }

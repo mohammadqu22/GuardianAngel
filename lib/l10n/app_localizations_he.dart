@@ -746,4 +746,10 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get homeAutoPrompt => 'מה מצב החירום שלך? הקש לביטול.';
+
+  @override
+  String get homeAiDetectedTitle => 'اكتشف الذكاء الاصطناعي حالتك الطارئة';
+
+  @override
+  String get homeAiOpenProtocol => 'فتح البروتوكول';
 }

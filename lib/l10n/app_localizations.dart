@@ -1425,6 +1425,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'What is your emergency? Tap to dismiss.'**
   String get homeAutoPrompt;
+
+  /// No description provided for @homeAiDetectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI detected your emergency'**
+  String get homeAiDetectedTitle;
+
+  /// No description provided for @homeAiOpenProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN PROTOCOL'**
+  String get homeAiOpenProtocol;
 }
 
 class _AppLocalizationsDelegate

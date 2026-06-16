@@ -311,5 +311,7 @@
   "stepHandsFreeBanner": "الوضع الحر نشط — قل \"التالي\" أو \"السابق\"",
   "stepHandsFreeOn": "الوضع الحر مفعّل",
   "stepHandsFreeOff": "الوضع الحر معطّل",
-  "homeAutoPrompt": "ما هي حالتك الطارئة؟ اضغط للإلغاء."
+  "homeAutoPrompt": "ما هي حالتك الطارئة؟ اضغط للإلغاء.",
+  "homeAiDetectedTitle": "اكتشف الذكاء الاصطناعي حالتك الطارئة",
+  "homeAiOpenProtocol": "فتح البروتوكول"
 }

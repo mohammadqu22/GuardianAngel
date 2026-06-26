@@ -761,4 +761,8 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get homeAiOpenProtocol => 'فتح البروتوكول';
+
+  @override
+  String get homeAiOffline =>
+      'اقتراحات الذكاء الاصطناعي تحتاج إلى اتصال بالإنترنت. تصفّح القائمة بالأعلى أو اتصل بـ 101.';
 }

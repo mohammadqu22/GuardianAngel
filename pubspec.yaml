@@ -68,8 +68,11 @@ dependencies:
   # On-device speech recognition for search-bar dictation
   speech_to_text: ^7.4.0
 
- # HTTP client for AI emergency detection
+ # HTTP client (used by various services)
   http: ^1.2.1
+
+  # Backend: AI triage proxy, optional auth, and future cloud sync
+  supabase_flutter: ^2.8.0
 
 dev_dependencies:
   flutter_test:

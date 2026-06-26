@@ -293,5 +293,6 @@
   "stepHandsFreeOff": "ידיים חופשיות כבוי",
   "homeAutoPrompt": "מה מצב החירום שלך? הקש לביטול.",
   "homeAiDetectedTitle": "הבינה המלאכותית זיהתה את מצב החירום שלך",
-  "homeAiOpenProtocol": "פתח פרוטוקול"
+  "homeAiOpenProtocol": "פתח פרוטוקול",
+  "homeAiOffline": "הצעות הבינה המלאכותית דורשות חיבור לאינטרנט. עיין ברשימה שלמעלה או התקשר 101."
 }

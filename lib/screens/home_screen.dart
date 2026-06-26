@@ -113,6 +113,10 @@ class _HomeScreenState extends State<HomeScreen>
   String? _aiSuggestedTitle;
   Color? _aiSuggestedColor;
   bool _aiLoading = false;
+  // True when the last AI fallback attempt couldn't reach the proxy (offline or
+  // backend unavailable) — drives a clear "needs internet" empty state instead
+  // of a misleading "no results".
+  bool _aiUnreachable = false;
 
   /// Built inside build() so titles are always in the active locale.
   ///
@@ -309,12 +313,13 @@ class _HomeScreenState extends State<HomeScreen>
   void _clearAiSuggestion() {
     _aiDebounceTimer?.cancel();
     _lastAiQuery = null;
-    if (_aiSuggestedId != null || _aiLoading) {
+    if (_aiSuggestedId != null || _aiLoading || _aiUnreachable) {
       setState(() {
         _aiSuggestedId = null;
         _aiSuggestedTitle = null;
         _aiSuggestedColor = null;
         _aiLoading = false;
+        _aiUnreachable = false;
       });
     }
   }
@@ -338,13 +343,17 @@ class _HomeScreenState extends State<HomeScreen>
     // result identical to the partial that already triggered detection).
     if (query == _lastAiQuery) return;
 
-    setState(() => _aiLoading = true);
+    setState(() {
+      _aiLoading = true;
+      _aiUnreachable = false;
+    });
 
     // fix: save query snapshot to guard against race conditions
     final requestQuery = query;
     _aiDebounceTimer = Timer(const Duration(milliseconds: 1500), () async {
       if (!mounted || requestQuery != _searchQuery) return;
-      // Respect the AI-detection opt-out — this sends text off-device to Groq.
+      // Respect the AI-detection opt-out — this sends text off-device to Groq
+      // (via the Supabase triage proxy).
       final prefs = await SharedPreferences.getInstance();
       if (!(prefs.getBool('ai_detection_enabled') ?? true)) {
         if (mounted) setState(() => _aiLoading = false);
@@ -353,17 +362,35 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted || requestQuery != _searchQuery) return;
       _lastAiQuery = requestQuery;
       final allEmergencies = _buildEmergencyList(l10n);
-      final id = await AiService.detectEmergency(requestQuery);
+      final String? id;
+      try {
+        id = await AiService.detectEmergency(requestQuery);
+      } on TriageUnreachable {
+        // No internet / backend unavailable. Keep the app usable offline and
+        // show a clear message instead of a misleading "no results". Clear the
+        // dedupe key so the same phrase retries once back online.
+        _lastAiQuery = null;
+        if (!mounted || requestQuery != _searchQuery) return;
+        setState(() {
+          _aiSuggestedId = null;
+          _aiSuggestedTitle = null;
+          _aiSuggestedColor = null;
+          _aiLoading = false;
+          _aiUnreachable = true;
+        });
+        return;
+      }
       if (!mounted || requestQuery != _searchQuery) return;
       if (id == null) {
-        // A no-match or transient failure shouldn't be cached, or re-typing the
-        // same phrase would never re-query. Clear the dedupe key so it retries.
+        // A no-match shouldn't be cached, or re-typing the same phrase would
+        // never re-query. Clear the dedupe key so it retries.
         _lastAiQuery = null;
         setState(() {
           _aiSuggestedId = null;
           _aiSuggestedTitle = null;
           _aiSuggestedColor = null;
           _aiLoading = false;
+          _aiUnreachable = false;
         });
         return;
       }
@@ -375,6 +402,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _aiSuggestedId = null;
           _aiLoading = false;
+          _aiUnreachable = false;
         });
         return;
       }
@@ -383,6 +411,7 @@ class _HomeScreenState extends State<HomeScreen>
         _aiSuggestedTitle = match['title'] as String;
         _aiSuggestedColor = match['color'] as Color;
         _aiLoading = false;
+        _aiUnreachable = false;
       });
     });
   }
@@ -997,21 +1026,32 @@ class _HomeScreenState extends State<HomeScreen>
                                   ),
                                 )
                               : Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.search_off,
-                                        size: 64,
-                                        color: cs.outline,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        l10n.homeNoResults,
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(color: cs.outline),
-                                      ),
-                                    ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 32,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _aiUnreachable
+                                              ? Icons.cloud_off
+                                              : Icons.search_off,
+                                          size: 64,
+                                          color: cs.outline,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          _aiUnreachable
+                                              ? l10n.homeAiOffline
+                                              : l10n.homeNoResults,
+                                          textAlign: TextAlign.center,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(color: cs.outline),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 )
                         : LayoutBuilder(

@@ -752,4 +752,8 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get homeAiOpenProtocol => 'פתח פרוטוקול';
+
+  @override
+  String get homeAiOffline =>
+      'הצעות הבינה המלאכותית דורשות חיבור לאינטרנט. עיין ברשימה שלמעלה או התקשר 101.';
 }

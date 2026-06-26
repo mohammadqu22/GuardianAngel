@@ -366,5 +366,6 @@
   "stepHandsFreeOff": "Hands-free OFF",
   "homeAutoPrompt": "What is your emergency? Tap to dismiss.",
   "homeAiDetectedTitle": "AI detected your emergency",
-  "homeAiOpenProtocol": "OPEN PROTOCOL"
+  "homeAiOpenProtocol": "OPEN PROTOCOL",
+  "homeAiOffline": "AI suggestions need an internet connection. Browse the list above, or call 101."
 }

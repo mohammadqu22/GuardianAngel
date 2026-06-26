@@ -1437,6 +1437,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OPEN PROTOCOL'**
   String get homeAiOpenProtocol;
+
+  /// No description provided for @homeAiOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions need an internet connection. Browse the list above, or call 101.'**
+  String get homeAiOffline;
 }
 
 class _AppLocalizationsDelegate

@@ -765,4 +765,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAiOpenProtocol => 'OPEN PROTOCOL';
+
+  @override
+  String get homeAiOffline =>
+      'AI suggestions need an internet connection. Browse the list above, or call 101.';
 }

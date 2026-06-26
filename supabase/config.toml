@@ -1,0 +1,9 @@
+# Supabase CLI config for the Guardian Angel dev project.
+# Project: guardianangel-dev (org: GuardianAngel Dev)
+project_id = "vmnfflondnqrkfkgddzo"
+
+[functions.triage]
+# The app always sends the public anon key, so JWT verification can stay on.
+# Anonymous (logged-out) users still pass the anon key, so triage works without
+# an account — login is never required for emergency usage.
+verify_jwt = true

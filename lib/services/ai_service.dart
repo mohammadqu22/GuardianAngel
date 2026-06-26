@@ -1,10 +1,22 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'secrets.dart';
+import 'supabase_service.dart';
 
+/// Thrown when the AI triage proxy cannot be reached (no internet, Supabase not
+/// initialized, timeout, or upstream error). Callers should treat this as
+/// "AI unavailable" and show an offline fallback — distinct from a successful
+/// call that simply found no match (which returns null).
+class TriageUnreachable implements Exception {
+  const TriageUnreachable();
+}
+
+/// Emergency detection via the Supabase `triage` Edge Function.
+///
+/// The Groq API key is NOT in the app — the function holds it server-side and
+/// this client only talks to Supabase. The contract is unchanged from the old
+/// direct-to-Groq implementation: returns a valid protocol id, or null when
+/// there is no confident match. Network/availability failures throw
+/// [TriageUnreachable] so the UI can show a clear offline message.
 class AiService {
-  static const _apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-  static const _apiKey = Secrets.groqApiKey;
+  AiService._();
 
   static const _validIds = [
     'choking',
@@ -17,60 +29,43 @@ class AiService {
     'seizures',
   ];
 
-  static Future<String?> detectEmergency(String userInput) async {
-    if (userInput.trim().isEmpty) return null;
-    if (_apiKey.trim().isEmpty) return null; // fix: skip call if no key
+  /// Returns a protocol id when the proxy confidently matches one, else null.
+  /// Throws [TriageUnreachable] when the proxy can't be reached.
+  static Future<String?> detectEmergency(
+    String userInput, {
+    String? lang,
+  }) async {
+    final query = userInput.trim();
+    if (query.isEmpty) return null;
 
+    // Offline-first: if Supabase never initialized there is no point trying.
+    if (!SupabaseService.isReady) throw const TriageUnreachable();
+
+    final dynamic data;
     try {
-      final response = await http.post(
-        Uri.parse(_apiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
-        body: jsonEncode({
-          'model': 'llama-3.1-8b-instant',
-          'max_tokens': 20,
-          'temperature': 0.0,
-          'messages': [
-            {
-              'role': 'system',
-              'content': '''You are an emergency triage assistant.
-Given user input, respond with ONLY one of these exact IDs if it matches a medical emergency, or respond with ONLY the word "none" if it does not:
-choking, choking_infant, cpr, cpr_infant, burns, bleeding, fractures, seizures
-
-Rules:
-- "infant" or "baby" or "newborn" → use the infant variant
-- Respond with ONLY the ID or "none", nothing else
-- If unsure, respond with "none"''',
-            },
-            {
-              'role': 'user',
-              'content': userInput,
-            }
-          ],
-        }),
-      ).timeout(const Duration(seconds: 8));
-
-      if (response.statusCode != 200) return null;
-
-      final data = jsonDecode(response.body);
-      final text = data['choices']?[0]?['message']?['content']
-          ?.toString()
-          .trim()
-          .toLowerCase();
-
-      if (text == null) return null;
-      return _validIds.contains(text) ? text : null;
+      final res = await SupabaseService.client.functions
+          .invoke(
+            'triage',
+            body: {'query': query, if (lang != null) 'lang': lang},
+          )
+          .timeout(const Duration(seconds: 8));
+      data = res.data;
     } catch (e, stack) {
       assert(() {
         // ignore: avoid_print
-        print('AI error: $e');
+        print('AI triage unreachable: $e');
         // ignore: avoid_print
-        print('AI stack: $stack');
+        print('AI triage stack: $stack');
         return true;
       }());
-      return null;
+      throw const TriageUnreachable();
     }
+
+    final id = (data is Map ? data['id'] : null)
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (id == null || !_validIds.contains(id)) return null;
+    return id;
   }
 }

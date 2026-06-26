@@ -6,6 +6,7 @@ import 'screens/disclaimer_screen.dart';
 import 'services/permission_service.dart';
 import 'services/database_service.dart';
 import 'services/tts_service.dart';
+import 'services/supabase_service.dart';
 import 'core/app_theme.dart';
 
 void main() {
@@ -62,6 +63,10 @@ class _GuardianAngelAppState extends State<GuardianAngelApp> {
     } catch (_) {
       // TTS unavailable; the app remains functional without audio.
     }
+    // Online-only enhancements (AI triage proxy, optional auth/sync). Never
+    // blocks startup: SupabaseService.init() swallows failures and leaves the
+    // app fully usable offline.
+    await SupabaseService.init();
 
     if (mounted) {
       setState(() {

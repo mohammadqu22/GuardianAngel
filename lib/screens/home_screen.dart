@@ -194,10 +194,15 @@ class _HomeScreenState extends State<HomeScreen>
     return all.where((e) {
       final title = _normalizeForSearch(e['title'] as String);
       // Partial typing of the title, or the title appearing within the phrase.
-      if (title.contains(query) || fuzzyContains(query, title)) return true;
+      // fuzzyAscii tolerates English typos ("chocking" → "Choking") so common
+      // misspellings resolve locally instead of falling through to the AI.
+      if (title.contains(query) ||
+          fuzzyContains(query, title, fuzzyAscii: true)) {
+        return true;
+      }
       final keywords = (e['keywords'] as List<String>?) ?? const [];
       return keywords.any(
-        (kw) => fuzzyContains(query, _normalizeForSearch(kw)),
+        (kw) => fuzzyContains(query, _normalizeForSearch(kw), fuzzyAscii: true),
       );
     }).toList();
   }

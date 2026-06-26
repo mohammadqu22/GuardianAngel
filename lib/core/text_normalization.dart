@@ -42,11 +42,7 @@ String normalizeForMatch(String input) {
     if (ch == 0x0629) ch = 0x0647;
     buffer.writeCharCode(ch);
   }
-  return buffer
-      .toString()
-      .toLowerCase()
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  return buffer.toString().toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
 /// True when a speech_to_text error message represents a benign silence /
@@ -97,15 +93,28 @@ int levenshtein(String a, String b) {
 ///
 /// For non-ASCII keywords (Arabic/Hebrew), where on-device recognition is
 /// noisier, a near-miss token within [maxEdits] edit distance also matches
-/// (e.g. ق↔ك). ASCII (English) keywords require an exact token to avoid
-/// pairs like "fast"~"last" colliding.
-bool fuzzyContains(String text, String keyword, {int maxEdits = 1}) {
+/// (e.g. ق↔ك). ASCII (English) keywords require an exact token by default to
+/// avoid pairs like "fast"~"last" colliding — which matters for voice commands
+/// where a false "next" is dangerous.
+///
+/// Set [fuzzyAscii] to also tolerate near-miss ASCII tokens (typos like
+/// "chocking"→"choking"). This is safe for the home search box — a wrong tile
+/// is harmless — but must stay off for command matching. It only applies to
+/// keywords of length >= 5, since short English words collide too easily.
+bool fuzzyContains(
+  String text,
+  String keyword, {
+  int maxEdits = 1,
+  bool fuzzyAscii = false,
+}) {
   if (keyword.isEmpty) return false;
   // Multi-word keyword (e.g. "go back"): match as a contiguous phrase.
   if (keyword.contains(' ')) return text.contains(keyword);
 
-  final fuzzyEligible =
-      keyword.length >= 4 && !keyword.codeUnits.every((c) => c < 128);
+  final isAscii = keyword.codeUnits.every((c) => c < 128);
+  final fuzzyEligible = isAscii
+      ? (fuzzyAscii && keyword.length >= 5)
+      : keyword.length >= 4;
   for (final token in text.split(' ')) {
     if (token == keyword) return true;
     if (fuzzyEligible &&

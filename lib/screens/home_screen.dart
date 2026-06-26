@@ -98,89 +98,133 @@ class _HomeScreenState extends State<HomeScreen>
   bool _wantListening = false;
   List<LocaleName> _speechLocales = const [];
 
-    Timer? _autoPromptTimer;
-    bool _autoPromptVisible = false;
-    // Set once the user meaningfully interacts (tap, navigation, field focus).
-    // After that the idle voice prompt no longer auto-opens. Scrolling does NOT
-    // set this.
-    bool _autoPromptConsumed = false;
-    // ── AI detection state ──
-    Timer? _aiDebounceTimer;
-    // Last query actually sent to the AI, so an identical follow-up (e.g. a
-    // dictation final result matching the partial) isn't detected twice.
-    String? _lastAiQuery;
-    String? _aiSuggestedId;
-    String? _aiSuggestedTitle;
-    Color? _aiSuggestedColor;
-    bool _aiLoading = false;
+  Timer? _autoPromptTimer;
+  bool _autoPromptVisible = false;
+  // Set once the user meaningfully interacts (tap, navigation, field focus).
+  // After that the idle voice prompt no longer auto-opens. Scrolling does NOT
+  // set this.
+  bool _autoPromptConsumed = false;
+  // ── AI detection state ──
+  Timer? _aiDebounceTimer;
+  // Last query actually sent to the AI, so an identical follow-up (e.g. a
+  // dictation final result matching the partial) isn't detected twice.
+  String? _lastAiQuery;
+  String? _aiSuggestedId;
+  String? _aiSuggestedTitle;
+  Color? _aiSuggestedColor;
+  bool _aiLoading = false;
 
-
-
-  
   /// Built inside build() so titles are always in the active locale.
+  ///
+  /// Language-independent keywords let direct phrases ("someone is choking")
+  /// resolve to a protocol locally — without a Groq call — even when the active
+  /// UI language differs from the typed text. They are matched as whole words /
+  /// phrases (see [fuzzyContains]), never as substrings. Indirect descriptions
+  /// ("someone can't breathe") intentionally have no keyword so they fall
+  /// through to the AI fallback.
   List<Map<String, dynamic>> _buildEmergencyList(AppLocalizations l10n) => [
     {
       'id': 'choking',
       'title': l10n.emergencyChoking,
       'color': AppColors.chokingBlue,
+      'keywords': const ['choking', 'choke'],
     },
     {
       'id': 'choking_infant',
       'title': l10n.emergencyChokingInfant,
       'color': AppColors.chokingBlue,
+      'keywords': const [
+        'infant choking',
+        'baby choking',
+        'choking infant',
+        'choking baby',
+      ],
     },
-    {'id': 'cpr', 'title': l10n.emergencyCPR, 'color': AppColors.cprRed},
+    {
+      'id': 'cpr',
+      'title': l10n.emergencyCPR,
+      'color': AppColors.cprRed,
+      'keywords': const ['cpr', 'cardiac arrest', 'resuscitation'],
+    },
     {
       'id': 'cpr_infant',
       'title': l10n.emergencyCPRInfant,
       'color': AppColors.cprRed,
+      'keywords': const ['infant cpr', 'baby cpr', 'cpr infant', 'cpr baby'],
     },
     {
       'id': 'burns',
       'title': l10n.emergencyBurns,
       'color': AppColors.burnOrange,
+      'keywords': const ['burn', 'burns', 'burned', 'scald'],
     },
     {
       'id': 'bleeding',
       'title': l10n.emergencyBleeding,
       'color': AppColors.bleedingCrimson,
+      'keywords': const ['bleeding', 'bleed', 'blood', 'hemorrhage'],
     },
     {
       'id': 'fractures',
       'title': l10n.emergencyFractures,
       'color': AppColors.fracturePurple,
+      'keywords': const ['fracture', 'fractures', 'broken bone', 'broke'],
     },
     {
       'id': 'seizures',
       'title': l10n.emergencySeizures,
       'color': AppColors.seizureAmber,
+      'keywords': const ['seizure', 'seizures', 'convulsion', 'epilepsy'],
     },
   ];
 
-  @override
+  /// Local-first protocol search shared by the grid and the AI-fallback gate.
+  ///
+  /// A protocol matches when the typed text overlaps its localized title in
+  /// either direction (so both partial typing — "cho" → "Choking" — and full
+  /// phrases — "someone is choking" → "Choking" — work) or contains one of its
+  /// language-independent [keywords] as a whole word. Returns the full list for
+  /// an empty query.
+  List<Map<String, dynamic>> _filterEmergencies(
+    List<Map<String, dynamic>> all,
+    String rawQuery,
+  ) {
+    final query = _normalizeForSearch(rawQuery);
+    if (query.isEmpty) return all;
+    return all.where((e) {
+      final title = _normalizeForSearch(e['title'] as String);
+      // Partial typing of the title, or the title appearing within the phrase.
+      if (title.contains(query) || fuzzyContains(query, title)) return true;
+      final keywords = (e['keywords'] as List<String>?) ?? const [];
+      return keywords.any(
+        (kw) => fuzzyContains(query, _normalizeForSearch(kw)),
+      );
+    }).toList();
+  }
 
-void didChangeDependencies() {
-  super.didChangeDependencies();
-  final locale = Localizations.localeOf(context);
-  if (_lastLocale != null && _lastLocale != locale) {
-    _searchController.clear();
-    _searchQuery = '';
-    _resetGridScroll();
-    if (_isListening) {
-      _speech.stop();
-      _isListening = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context);
+    if (_lastLocale != null && _lastLocale != locale) {
+      _searchController.clear();
+      _searchQuery = '';
+      _resetGridScroll();
+      if (_isListening) {
+        _speech.stop();
+        _isListening = false;
+      }
+      _cancelAutoPrompt();
     }
-    _cancelAutoPrompt();
+    // Start the timer only on the very first load
+    if (_lastLocale == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) _startAutoPromptTimer(l10n);
+      });
+    }
+    _lastLocale = locale;
   }
-  // Start the timer only on the very first load
-  if (_lastLocale == null) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final l10n = AppLocalizations.of(context);
-      if (l10n != null) _startAutoPromptTimer(l10n);
-    });
-  }
-  _lastLocale = locale;
-}
 
   @override
   void dispose() {
@@ -193,80 +237,95 @@ void didChangeDependencies() {
     _summaryController.dispose();
     super.dispose();
   }
+
   void _startAutoPromptTimer(AppLocalizations l10n) {
-  _autoPromptTimer?.cancel();
-  _autoPromptTimer = Timer(const Duration(seconds: 7), () async {
-    // Only auto-open the mic when nothing meaningful has happened: not already
-    // consumed by a tap/navigation/focus, not listening, no query typed, the
-    // search field isn't focused, and the home screen is still the top route
-    // (so it never fires over a pushed protocol/settings screen).
-    if (!mounted ||
-        _autoPromptConsumed ||
-        _learnMode ||
-        _isListening ||
-        _searchQuery.isNotEmpty ||
-        _searchFocus.hasFocus ||
-        !(ModalRoute.of(context)?.isCurrent ?? true)) {
-      return;
-    }
-    setState(() => _autoPromptVisible = true);
-    await _toggleDictation(l10n);
-  });
-}
-
-void _cancelAutoPrompt() {
-  _autoPromptTimer?.cancel();
-  _autoPromptTimer = null;
-  if (_autoPromptVisible) {
-    setState(() => _autoPromptVisible = false);
-  }
-}
-
-/// Records a meaningful user interaction (tap, navigation, field focus) and
-/// permanently disables the idle voice prompt for this session — also stopping
-/// any prompt already in progress. Scrolling must NOT call this.
-void _consumeAutoPrompt() {
-  if (_autoPromptConsumed) return;
-  _autoPromptConsumed = true;
-  _wantListening = false;
-  // cancel() (not stop()) fully aborts the session and releases the shared iOS
-  // recognizer, so a lingering home session can't time out and surface its
-  // snackbar over a pushed protocol, and the protocol's Free Mode gets a clean
-  // recognizer.
-  _speech.cancel();
-  _autoPromptTimer?.cancel();
-  _autoPromptTimer = null;
-  if (mounted && (_autoPromptVisible || _isListening)) {
-    setState(() {
-      _autoPromptVisible = false;
-      _isListening = false;
+    _autoPromptTimer?.cancel();
+    _autoPromptTimer = Timer(const Duration(seconds: 7), () async {
+      // Only auto-open the mic when nothing meaningful has happened: not already
+      // consumed by a tap/navigation/focus, not listening, no query typed, the
+      // search field isn't focused, and the home screen is still the top route
+      // (so it never fires over a pushed protocol/settings screen).
+      if (!mounted ||
+          _autoPromptConsumed ||
+          _learnMode ||
+          _isListening ||
+          _searchQuery.isNotEmpty ||
+          _searchFocus.hasFocus ||
+          !(ModalRoute.of(context)?.isCurrent ?? true)) {
+        return;
+      }
+      setState(() => _autoPromptVisible = true);
+      await _toggleDictation(l10n);
     });
   }
-}
 
-// Explicit user dismissal of the voice prompt: also stop the mic and clear the
-// keep-listening intent so it doesn't re-arm.
-void _dismissVoicePrompt() {
-  _wantListening = false;
-  if (_isListening) {
-    _speech.stop();
-    setState(() => _isListening = false);
+  void _cancelAutoPrompt() {
+    _autoPromptTimer?.cancel();
+    _autoPromptTimer = null;
+    if (_autoPromptVisible) {
+      setState(() => _autoPromptVisible = false);
+    }
   }
-  _cancelAutoPrompt();
-}
- 
+
+  /// Records a meaningful user interaction (tap, navigation, field focus) and
+  /// permanently disables the idle voice prompt for this session — also stopping
+  /// any prompt already in progress. Scrolling must NOT call this.
+  void _consumeAutoPrompt() {
+    if (_autoPromptConsumed) return;
+    _autoPromptConsumed = true;
+    _wantListening = false;
+    // cancel() (not stop()) fully aborts the session and releases the shared iOS
+    // recognizer, so a lingering home session can't time out and surface its
+    // snackbar over a pushed protocol, and the protocol's Free Mode gets a clean
+    // recognizer.
+    _speech.cancel();
+    _autoPromptTimer?.cancel();
+    _autoPromptTimer = null;
+    if (mounted && (_autoPromptVisible || _isListening)) {
+      setState(() {
+        _autoPromptVisible = false;
+        _isListening = false;
+      });
+    }
+  }
+
+  // Explicit user dismissal of the voice prompt: also stop the mic and clear the
+  // keep-listening intent so it doesn't re-arm.
+  void _dismissVoicePrompt() {
+    _wantListening = false;
+    if (_isListening) {
+      _speech.stop();
+      setState(() => _isListening = false);
+    }
+    _cancelAutoPrompt();
+  }
+
+  /// Cancels any in-flight AI request and drops the current suggestion/spinner.
+  void _clearAiSuggestion() {
+    _aiDebounceTimer?.cancel();
+    _lastAiQuery = null;
+    if (_aiSuggestedId != null || _aiLoading) {
+      setState(() {
+        _aiSuggestedId = null;
+        _aiSuggestedTitle = null;
+        _aiSuggestedColor = null;
+        _aiLoading = false;
+      });
+    }
+  }
+
   void _runAiDetection(String query, AppLocalizations l10n) {
     _aiDebounceTimer?.cancel();
-    if (query.trim().length < 4) {
-      _lastAiQuery = null;
-      if (_aiSuggestedId != null || _aiLoading) {
-        setState(() {
-          _aiSuggestedId = null;
-          _aiSuggestedTitle = null;
-          _aiSuggestedColor = null;
-          _aiLoading = false;
-        });
-      }
+
+    // Local search is authoritative: if the typed text is too short, or it
+    // already matches a protocol by title or keyword, never spend a Groq call
+    // (or surface the AI card). The cloud fallback is only for indirect phrases
+    // that local search can't resolve.
+    final hasLocalMatch =
+        query.trim().isNotEmpty &&
+        _filterEmergencies(_buildEmergencyList(l10n), query).isNotEmpty;
+    if (query.trim().length < 4 || hasLocalMatch) {
+      _clearAiSuggestion();
       return;
     }
 
@@ -581,15 +640,10 @@ void _dismissVoicePrompt() {
     final cs = theme.colorScheme;
 
     final allEmergencies = _buildEmergencyList(l10n);
-    final query = _normalizeForSearch(_searchQuery);
-    final filteredEmergencies = query.isEmpty
-        ? allEmergencies
-        : allEmergencies
-              .where(
-                (e) =>
-                    _normalizeForSearch(e['title'] as String).contains(query),
-              )
-              .toList();
+    final filteredEmergencies = _filterEmergencies(
+      allEmergencies,
+      _searchQuery,
+    );
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -714,7 +768,11 @@ void _dismissVoicePrompt() {
                                           ),
                                     ),
                                   ),
-                                  Icon(Icons.close, color: cs.primary, size: 18),
+                                  Icon(
+                                    Icons.close,
+                                    color: cs.primary,
+                                    size: 18,
+                                  ),
                                 ],
                               ),
                             ),
@@ -762,7 +820,7 @@ void _dismissVoicePrompt() {
                     ),
                   ),
                 ),
-               
+
                 const SizedBox(height: 14),
                 // Both header cards (learn summary / nearby medical help)
                 // collapse in sync with grid scrolling so the protocols get
@@ -791,133 +849,167 @@ void _dismissVoicePrompt() {
                 Expanded(
                   child: _inertWhileSearching(
                     filteredEmergencies.isEmpty
-                    ? (_aiSuggestedId != null || _aiLoading)
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (_aiLoading) ...[
-                              CircularProgressIndicator(color: cs.primary),
-                              const SizedBox(height: 16),
-                              Text(
-                                l10n.homeAiAnalyzing,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                            ] else if (_aiSuggestedId != null) ...[
-                              GestureDetector(
-                                onTap: () {
-                                  _openEmergency(
-                                    id: _aiSuggestedId!,
-                                    title: _aiSuggestedTitle!,
-                                    color: _aiSuggestedColor!,
-                                  );
-                                  setState(() {
-                                    _aiSuggestedId = null;
-                                    _aiSuggestedTitle = null;
-                                    _aiSuggestedColor = null;
-                                  });
-                                },
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(28),
-                                  decoration: BoxDecoration(
-                                    color: _aiSuggestedColor!.withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                                    border: Border.all(
-                                      color: _aiSuggestedColor!.withValues(alpha: 0.4),
-                                      width: 2,
-                                    ),
-                                  ),
+                        ? (_aiSuggestedId != null || _aiLoading)
+                              ? Center(
                                   child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(20),
-                                        decoration: BoxDecoration(
-                                          color: _aiSuggestedColor!.withValues(alpha: 0.12),
-                                          shape: BoxShape.circle,
+                                      if (_aiLoading) ...[
+                                        CircularProgressIndicator(
+                                          color: cs.primary,
                                         ),
-                                        child: Icon(
-                                          Icons.auto_awesome,
-                                          color: _aiSuggestedColor,
-                                          size: 48,
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          l10n.homeAiAnalyzing,
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: cs.onSurfaceVariant,
+                                              ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      Text(
-                                        l10n.homeAiDetectedTitle,
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          color: cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _aiSuggestedTitle!,
-                                        style: theme.textTheme.headlineMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: _aiSuggestedColor,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 24),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _aiSuggestedColor,
-                                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.play_arrow_rounded,
-                                              color: Colors.white,
-                                              size: 24,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              l10n.homeAiOpenProtocol,
-                                              style: theme.textTheme.titleMedium?.copyWith(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
+                                      ] else if (_aiSuggestedId != null) ...[
+                                        GestureDetector(
+                                          onTap: () {
+                                            _openEmergency(
+                                              id: _aiSuggestedId!,
+                                              title: _aiSuggestedTitle!,
+                                              color: _aiSuggestedColor!,
+                                            );
+                                            setState(() {
+                                              _aiSuggestedId = null;
+                                              _aiSuggestedTitle = null;
+                                              _aiSuggestedColor = null;
+                                            });
+                                          },
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(28),
+                                            decoration: BoxDecoration(
+                                              color: _aiSuggestedColor!
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppRadius.xl,
+                                                  ),
+                                              border: Border.all(
+                                                color: _aiSuggestedColor!
+                                                    .withValues(alpha: 0.4),
+                                                width: 2,
                                               ),
                                             ),
-                                          ],
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    20,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: _aiSuggestedColor!
+                                                        .withValues(
+                                                          alpha: 0.12,
+                                                        ),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.auto_awesome,
+                                                    color: _aiSuggestedColor,
+                                                    size: 48,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Text(
+                                                  l10n.homeAiDetectedTitle,
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                        color:
+                                                            cs.onSurfaceVariant,
+                                                      ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  _aiSuggestedTitle!,
+                                                  style: theme
+                                                      .textTheme
+                                                      .headlineMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            _aiSuggestedColor,
+                                                      ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 24),
+                                                Container(
+                                                  width: double.infinity,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 16,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: _aiSuggestedColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          AppRadius.lg,
+                                                        ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(
+                                                        Icons
+                                                            .play_arrow_rounded,
+                                                        color: Colors.white,
+                                                        size: 24,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        l10n.homeAiOpenProtocol,
+                                                        style: theme
+                                                            .textTheme
+                                                            .titleMedium
+                                                            ?.copyWith(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
+                                      ],
+                                    ],
+                                  ),
+                                )
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.search_off,
+                                        size: 64,
+                                        color: cs.outline,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        l10n.homeNoResults,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(color: cs.outline),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: cs.outline,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              l10n.homeNoResults,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: cs.outline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                                        : LayoutBuilder(
+                                )
+                        : LayoutBuilder(
                             builder: (context, constraints) {
                               const spacing = 16.0;
                               // When there are more than four protocols, shrink the

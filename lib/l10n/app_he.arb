@@ -292,6 +292,6 @@
   "stepHandsFreeOn": "ידיים חופשיות פעיל",
   "stepHandsFreeOff": "ידיים חופשיות כבוי",
   "homeAutoPrompt": "מה מצב החירום שלך? הקש לביטול.",
-  "homeAiDetectedTitle": "اكتشف الذكاء الاصطناعي حالتك الطارئة",
-  "homeAiOpenProtocol": "فتح البروتوكول"
+  "homeAiDetectedTitle": "הבינה המלאכותית זיהתה את מצב החירום שלך",
+  "homeAiOpenProtocol": "פתח פרוטוקול"
 }

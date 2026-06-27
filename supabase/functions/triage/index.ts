@@ -76,23 +76,14 @@ Deno.serve(async (req: Request) => {
   if (!query) return json({ id: null });
   if (query.length > 500) query = query.slice(0, 500); // basic abuse guard
 
-  // ── Resolve caller (optional). Anonymous triage is allowed → user_id null. ──
+  // Analytics is anonymous for now (no user attribution) — also the most
+  // privacy-preserving default. The admin client uses a service key: SERVICE_KEY
+  // (the new secret key, sb_secret_...) is preferred; the legacy auto-injected
+  // SUPABASE_SERVICE_ROLE_KEY is a fallback. On projects using the new API key
+  // system the legacy key may be rejected, in which case set SERVICE_KEY.
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  let userId: string | null = null;
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader) {
-    try {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data } = await userClient.auth.getUser();
-      userId = data.user?.id ?? null; // null when only the anon key was sent
-    } catch (_) {
-      // stay anonymous
-    }
-  }
+  const serviceKey = Deno.env.get("SERVICE_KEY") ??
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
   // ── Ask Groq ──
   const started = Date.now();
@@ -131,19 +122,26 @@ Deno.serve(async (req: Request) => {
   // ── Best-effort, privacy-preserving analytics (service role bypasses RLS) ──
   // Raw text is stored ONLY when LOG_TRIAGE_INPUT === "true".
   try {
-    const admin = createClient(supabaseUrl, serviceKey);
-    const logInput = Deno.env.get("LOG_TRIAGE_INPUT") === "true";
-    await admin.from("ai_triage_logs").insert({
-      user_id: userId,
-      matched_id: matched,
-      query_length: query.length,
-      lang,
-      model: MODEL,
-      latency_ms: latency,
-      input_text: logInput ? query : null,
-    });
-  } catch (_) {
+    if (!serviceKey) {
+      console.error("triage analytics skipped: no service role key in env");
+    } else {
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { persistSession: false },
+      });
+      const logInput = Deno.env.get("LOG_TRIAGE_INPUT") === "true";
+      const { error: logErr } = await admin.from("ai_triage_logs").insert({
+        matched_id: matched,
+        query_length: query.length,
+        lang,
+        model: MODEL,
+        latency_ms: latency,
+        input_text: logInput ? query : null,
+      });
+      if (logErr) console.error("triage log insert failed:", logErr.message);
+    }
+  } catch (e) {
     // Never fail the request because analytics logging failed.
+    console.error("triage log threw:", e instanceof Error ? e.message : e);
   }
 
   return json({ id: matched });
